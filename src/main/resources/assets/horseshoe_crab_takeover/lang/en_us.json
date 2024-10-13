@@ -1,0 +1,11 @@
+{
+  "entity.horseshoe_crab_takeover.horseshoe_crab": "Horseshoe Crab",
+
+  "item.horseshoe_crab_takeover.horseshoe_crab_spawn": "Horseshoe Crab Spawn",
+
+  "death.attack.crabbed_1": "%1$s got horseshoe'd",
+  "death.attack.crabbed_2": "%1$s was consumed by %2$s",
+  "death.attack.crabbed_3": "%1$s became one with the Limulidatic horde!",
+  "creativetab.horseshoe_tab": "Limulidatic Takeover: Horseshoe Crab Invasion!",
+  "horseshoe.system.infection_start": "The Horseshoe Crab Invasion has begun! Say your prayers, for the Horseshoe Crabs are coming, LOOK OUT!"
+}

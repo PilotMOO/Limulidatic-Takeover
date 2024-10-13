@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "horseshoe_crab_takeover:item/horseshoe_spawn"
+  }
+}
