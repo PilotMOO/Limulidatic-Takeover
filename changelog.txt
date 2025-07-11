@@ -85,7 +85,7 @@
  - 47.1.32 Cleanup usages of static imports and build script so that our build doesn't spam useless error like messages.
            So that it is easier to see real errors.
            Add compatibility checking to standard testing tasks.
- - 47.1.31 Added Action value to PlayerInteractEvent.LeftClickEvent to expose what action fired the event. #9175
+ - 47.1.31 Added Action value to PlayerInteractEvent.LeftClickEvent to expose what response fired the event. #9175
  - 47.1.30 Fix parameter names in IForgeDimensionSpecialEffects.adjustLightmapColors to better describe what they are. (#9656)
  - 47.1.29 Re-add EntityEvent.Size methods to maintain bincompat
  - 47.1.28 Added LivingMakeBrainEvent, to allow a consistent way for modders to manipulate entity Brains. #9292
@@ -355,7 +355,7 @@
 ====
  - 44.0.49 [1.19.3] Allow Item and Elements models to specify static color, sky light, and block light values. (#9106)
  - 44.0.48 Fix StemBlock not checking canSustainPlant for the correct block, it now checks for Melons/Pumpkins instead of the stem itself. (#9270)
- - 44.0.47 Add github shared actions for automation purposes. (#9251)
+ - 44.0.47 Add github shared responses for automation purposes. (#9251)
  - 44.0.46 Add translate key for Forge pack.mcmeta description (#9260)
  - 44.0.45 Fix broken link for update checker docs in mdk (#9271)
  - 44.0.44 Remove duplicate updateNeighbourForOutputSignal call Fixes #9169 (#9234)
@@ -464,7 +464,7 @@
            Fixes #8720
  - 43.1.48 Add missing semi-colon near the Dist import statement in example mod.
  - 43.1.47 Fix ClientModEvents example not subscribing to client-sided events (#9097)
- - 43.1.46 Use GitHub action to lock issues with the `spam` label (#9087)
+ - 43.1.46 Use GitHub response to lock issues with the `spam` label (#9087)
  - 43.1.45 Remove structures slave map to Feature registry (#9091)
  - 43.1.44 Improve logging of missing or unsupported dependencies (#9104)
  - 43.1.43 [1.19.x] Fix ValueSpec caching the return value incorrectly (#9046)
@@ -568,7 +568,7 @@
  - 42.0.4 Re-add PotentialSpawns event (#8712)
  - 42.0.3 Fix misplaced patch in ItemEntityRenderer breaking ItemEntityRenderer#shouldBob() (#8919)
  - 42.0.2 [1.19] [HotFix] Fix the dedicated server not having access to the JiJ filesystems. (#8931)
- - 42.0.1 Match Mojang's action bar fix for MC-72687 (#8917)
+ - 42.0.1 Match Mojang's response bar fix for MC-72687 (#8917)
  - 42.0.0 Forge 1.19.1
           Load natives from classpath
           Make command argument types a forge registry
@@ -840,7 +840,7 @@
  - 41.0.49  Fix TagsProviders for datapack registries not recognizing existing files (#8761)
  - 41.0.48  Add callback after a BlockState was changed and the neighbors were updated (#8686)
  - 41.0.47  Add biome tag entries for 1.19 biomes (#8684)
- - 41.0.46  Make fishing rods use tool actions for relevant logic (#8681)
+ - 41.0.46  Make fishing rods use tool responses for relevant logic (#8681)
  - 41.0.45  Update BootstrapLauncher to 1.1.1 and remove the forced
             merge of text2speech since new BSL does it.
  - 41.0.44  Merge text2speech libs together so the natives are part of the jar
@@ -892,7 +892,7 @@
  - 41.0.26  Use stack sensitive translation key by default for FluidAttributes. (#8707)
  - 41.0.25  Delete LootItemRandomChanceCondition which added looting bonus enchantment incorrectly. (#8733)
  - 41.0.24  Update EventBus to 6.0, ModLauncher to 10.0.1 and BootstrapLauncher to 1.1 (#8725)
- - 41.0.23  Replace support bot with support action (#8700)
+ - 41.0.23  Replace support bot with support response (#8700)
  - 41.0.22  Fix Reach Distance / Attack Range being clamped at 6.0 (#8699)
  - 41.0.21  [1.19.x] Fix mods' worldgen data not being loaded when creating new singleplayer worlds (#8693)
  - 41.0.20  [1.19.x] Fix experimental confirmation screen (#8727)

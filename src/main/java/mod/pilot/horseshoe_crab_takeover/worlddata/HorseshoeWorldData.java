@@ -12,7 +12,7 @@ public class HorseshoeWorldData extends SavedData {
     public HorseshoeWorldData(){
         super();
     }
-    public static void SetActiveData(ServerLevel server){
+    public static void setActiveData(ServerLevel server){
         Horseshoe_Crab_Takeover.activeData = server.getDataStorage().computeIfAbsent(HorseshoeWorldData::load, HorseshoeWorldData::new, NAME);
         activeData().setDirty();
     }

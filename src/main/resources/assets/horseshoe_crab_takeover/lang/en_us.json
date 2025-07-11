@@ -1,7 +1,7 @@
 {
-  "entity.horseshoe_crab_takeover.horseshoe_crab": "Horseshoe Crab",
+  "entity.horseshoe_crab_takeover.old_horseshoe_crab": "(ORIGINAL) Horseshoe Crab",
 
-  "item.horseshoe_crab_takeover.horseshoe_crab_spawn": "Horseshoe Crab Spawn",
+  "item.horseshoe_crab_takeover.old_horseshoe_crab_spawn": "Horseshoe Crab Spawn (ORIGINAL)",
 
   "death.attack.crabbed_1": "%1$s got horseshoe'd",
   "death.attack.crabbed_2": "%1$s was consumed by %2$s",

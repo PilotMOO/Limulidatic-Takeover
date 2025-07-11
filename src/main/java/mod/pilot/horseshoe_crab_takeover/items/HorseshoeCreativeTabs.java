@@ -20,6 +20,7 @@ public class HorseshoeCreativeTabs {
                     .title(Component.translatable("creativetab.horseshoe_tab"))
                     .displayItems((something, register) ->{
                         register.accept(HorseshoeItems.HORSESHOE_CRAB_SPAWNEGG.get());
+                        register.accept(HorseshoeItems.NEW_HORSESHOE_CRAB_SPAWNEGG.get());
                     })
                     .build());
 }

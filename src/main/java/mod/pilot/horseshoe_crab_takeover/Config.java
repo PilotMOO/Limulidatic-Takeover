@@ -19,9 +19,11 @@ public class Config {
 
     public static class Server {
         public final ForgeConfigSpec.ConfigValue<Integer> time_until_shit_gets_real;
+        public final ForgeConfigSpec.ConfigValue<Boolean> disable_invasion_start;
 
         public Server(ForgeConfigSpec.Builder builder) {
             time_until_shit_gets_real = builder.defineInRange("How long until the Horseshoe Crab Invasion starts, in ticks", 6000, 0, Integer.MAX_VALUE);
+            disable_invasion_start = builder.define("Disable the invasion start?", false);
         }
     }
 

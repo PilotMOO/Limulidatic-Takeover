@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeAnimationDefinitions;
-import mod.pilot.horseshoe_crab_takeover.entities.ModifiedHorseshoeCrabEntity;
+import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
 import net.minecraft.client.model.HierarchicalModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -17,7 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
-public class HorseshoeCrabModel<T extends Entity> extends HierarchicalModel<T> {
+public class OldHorseshoeCrabModel<T extends Entity> extends HierarchicalModel<T> {
 	public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation(Horseshoe_Crab_Takeover.MOD_ID, "horseshoe_crab_texture"), "main");
 	private final ModelPart crab;
 	private final ModelPart Rim;
@@ -26,7 +26,7 @@ public class HorseshoeCrabModel<T extends Entity> extends HierarchicalModel<T> {
 	private final ModelPart Tail;
 	private final ModelPart TailSpikes;
 
-	public HorseshoeCrabModel(ModelPart root) {
+	public OldHorseshoeCrabModel(ModelPart root) {
 		this.crab = root.getChild("crab");
 		this.Rim = this.crab.getChild("Rim");
 		this.LeftSpikes = this.Rim.getChild("LeftSpikes");
@@ -116,7 +116,7 @@ public class HorseshoeCrabModel<T extends Entity> extends HierarchicalModel<T> {
 	public void setupAnim(@NotNull Entity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
 		this.crab.getAllParts().forEach(ModelPart::resetPose);
 
-		this.animate(((ModifiedHorseshoeCrabEntity) entity).walkAnimationState, HorseshoeAnimationDefinitions.MOVE, ageInTicks, (float) (1f * ((ModifiedHorseshoeCrabEntity) entity).getAverageHorizontalMovementSpeed()) + 1);
+		this.animate(((OriginalHorseshoeCrabEntity) entity).walkAnimationState, HorseshoeAnimationDefinitions.MOVE, ageInTicks, (float) (1f * ((OriginalHorseshoeCrabEntity) entity).getAverageHorizontalMovementSpeed()) + 1);
 	}
 
 	@Override
