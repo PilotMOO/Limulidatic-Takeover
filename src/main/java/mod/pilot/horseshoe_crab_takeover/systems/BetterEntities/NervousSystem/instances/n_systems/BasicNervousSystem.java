@@ -52,7 +52,7 @@ public class BasicNervousSystem extends NervousSystem<WorldEntity> {
         if (n != null && n.testStimulant(stimulant)) n.stimulateUnsafe(user, stimulant);
     }
 
-    public ArrayList<Response.IAlive<WorldEntity, ?>> aliveResponses;
+    protected ArrayList<Response.IAlive<WorldEntity, ?>> aliveResponses;
     protected ArrayList<Response.IAlive<WorldEntity, ?>> que_addition;
     protected ArrayList<Response.IAlive<WorldEntity, ?>> que_removal;
     protected boolean add, remove;

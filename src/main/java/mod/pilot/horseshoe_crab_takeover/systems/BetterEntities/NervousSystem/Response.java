@@ -42,16 +42,17 @@ public abstract class Response<U extends WorldEntity, S extends Stimulant> {
      */
     public boolean begin(U actor, S stimulant){
         boolean flag = shouldAct(actor, stimulant);
-        System.out.println("[RESPONSE] Trying to begin Response with stimulant type [" + stimulant.getType() + "]... success? [" + flag + "]");
         if (flag) act(actor, stimulant);
         return flag;
     }
 
     /**
      * The "priority" of the Response-- responses with higher priority will be invoked first.
-     * <p>responses can mark the passing {@link Stimulant} as expired. Expired stimulants will be ignored.
-     * This allows higher priority responses to "filter" stimulants and prevent lower-priority responses from firing, if so desired.</p>
-     * @return the integer priority of the Response. Higher priority values get triggered first.
+     * Responses with a lower priority magnitude take priority over responses with a higher magnitude.
+     * (E.G. a Response with priority of 0 will be invoked BEFORE a Response with priority of 1 or greater)
+     * <p>Responses can mark the passing {@link Stimulant} as expired. Expired stimulants will be ignored.</p>
+     * This allows higher priority responses to "filter" stimulants and prevent lower-priority responses from firing, if so desired.
+     * @return the integer priority of the Response. Lower priority values get triggered first.
      */
     public abstract int priority();
 

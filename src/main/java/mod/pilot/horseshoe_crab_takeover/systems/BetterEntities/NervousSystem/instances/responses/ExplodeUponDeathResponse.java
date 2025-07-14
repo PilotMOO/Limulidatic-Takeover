@@ -1,4 +1,4 @@
-package mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.responses;
+package mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses;
 
 import mod.pilot.horseshoe_crab_takeover.damagetypes.HorseshoeDamageTypes;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.Response;
@@ -20,6 +20,6 @@ public class ExplodeUponDeathResponse extends Response<WorldEntity, Stimulant.Hu
 
     @Override
     public int priority() {
-        return 0;
+        return 1;
     }
 }

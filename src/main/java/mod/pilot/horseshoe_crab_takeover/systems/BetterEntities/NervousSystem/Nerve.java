@@ -2,12 +2,9 @@ package mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem;
 
 import com.google.common.collect.ImmutableList;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.WorldEntity;
-import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -144,7 +141,7 @@ public class Nerve<U extends WorldEntity, S extends Stimulant>{
      * An unsafe and unchecked call to {@link Nerve#stimulate(WorldEntity, Stimulant)}
      * that assumes the second argument is of or extends the class defined by the second type parameter
      * <p>See {@link Nerve#stimulateGuarded(WorldEntity, Object)} if you are uncertain if the cast is safe</p>
-     * ONLY checks if casting is safe, it does NOT invoke {@link Nerve#testStimulant(Stimulant)} before stimulating
+     * ONLY casts, it does NOT invoke {@link Nerve#testStimulant(Stimulant)} before stimulating
      * @param user The {@link U} (entity) that the responses are being used by
      * @param stimulant An object that is ASSUMED TO BE the related {@link Stimulant} containing the information of the stimulation
      */
@@ -188,9 +185,10 @@ public class Nerve<U extends WorldEntity, S extends Stimulant>{
     protected final void stimulate_internal(U user, S packet){
         cleanQues();
         for (Response<U, S> s1 : vResponses){
-            System.out.println("Beginning response...");
             if (s1.begin(user, packet) && s1 instanceof Response.IAlive<?,?> alive){
-                getParent().addActiveResponse((Response.IAlive<U, ?>)alive);
+                Response.IAlive<U, S> alive1 = (Response.IAlive<U, S>)alive;
+                alive1.rememberStimulant(packet);
+                getParent().addActiveResponse(alive1);
             }
             if (packet.isExpired()) break;
         }

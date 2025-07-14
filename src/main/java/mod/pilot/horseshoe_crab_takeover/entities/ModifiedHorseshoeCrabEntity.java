@@ -4,7 +4,8 @@ import mod.pilot.horseshoe_crab_takeover.damagetypes.HorseshoeDamageTypes;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.Stimulant;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.n_systems.BasicNervousSystem;
-import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.responses.ExplodeUponDeathResponse;
+import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses.ExplodeUponDeathResponse;
+import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses.LightningAttackerResponse;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.WorldEntity;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.INervousSystem;
 import net.minecraft.nbt.CompoundTag;
@@ -120,6 +121,8 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         BasicNervousSystem ns = getNervousSystem();
         ns.stimulate(this, Stimulant.IDLE(server, aggro));
         if (aggro) ns.stimulate(this, Stimulant.AGGRESSIVE(server, getTarget()));
+
+        getNervousSystem().tickActiveResponses(this);
     }
 
     @Override
@@ -233,6 +236,7 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
     @Override
     public BasicNervousSystem addResponses(ModifiedHorseshoeCrabEntity user, BasicNervousSystem nervousSystem) {
         nervousSystem.HURT_NERVE.addResponse(new ExplodeUponDeathResponse());
+        nervousSystem.HURT_NERVE.addResponse(new LightningAttackerResponse());
         nervousSystem.HURT_NERVE.cleanQues();
         return nervousSystem;
     }
