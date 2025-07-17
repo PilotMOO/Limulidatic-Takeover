@@ -8,6 +8,8 @@ import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.in
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses.LightningAttackerResponse;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.WorldEntity;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.INervousSystem;
+import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.IPlusMoveControl;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.PlusMovementControl;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -25,11 +27,13 @@ import net.minecraftforge.fluids.FluidType;
 import org.jetbrains.annotations.NotNull;
 
 public class ModifiedHorseshoeCrabEntity extends WorldEntity
-        implements INervousSystem<ModifiedHorseshoeCrabEntity, BasicNervousSystem> {
+        implements INervousSystem<ModifiedHorseshoeCrabEntity, BasicNervousSystem>,
+        IPlusMoveControl<ModifiedHorseshoeCrabEntity, PlusMovementControl> {
     public ModifiedHorseshoeCrabEntity(EntityType<? extends WorldEntity> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
         RandomizeSize();
         buildAndSetNervousSystem(this);
+        buildAndSetMoveControl(this);
     }
 
     public final AnimationState walkAnimationState = new AnimationState();
@@ -123,6 +127,7 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         if (aggro) ns.stimulate(this, Stimulant.AGGRESSIVE(server, getTarget()));
 
         getNervousSystem().tickActiveResponses(this);
+        getMoveControl().tick();
     }
 
     @Override
@@ -168,6 +173,10 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         }
         boolean hurt = super.hurt(source, pAmount);
         if (hurt) getNervousSystem().stimulate(this, Stimulant.HURT(!level().isClientSide, source.getEntity(), source, isDeadOrDying()));
+
+        Vec3 sourceP = source.getSourcePosition();
+        if (sourceP != null) getMoveControl().rotateTowards(sourceP, 30f);
+
         return hurt;
     }
 
@@ -235,9 +244,15 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
 
     @Override
     public BasicNervousSystem addResponses(ModifiedHorseshoeCrabEntity user, BasicNervousSystem nervousSystem) {
-        nervousSystem.HURT_NERVE.addResponse(new ExplodeUponDeathResponse());
+        /*nervousSystem.HURT_NERVE.addResponse(new ExplodeUponDeathResponse());
         nervousSystem.HURT_NERVE.addResponse(new LightningAttackerResponse());
-        nervousSystem.HURT_NERVE.cleanQues();
+        nervousSystem.HURT_NERVE.cleanQues();*/
         return nervousSystem;
     }
+
+
+    public PlusMovementControl moveControl;
+    @Override public PlusMovementControl buildMoveControl(ModifiedHorseshoeCrabEntity user) { return new PlusMovementControl(user); }
+    @Override public void setMoveControl(PlusMovementControl moveControl) { this.moveControl = moveControl; }
+    @Override public PlusMovementControl getMoveControl() { return moveControl; }
 }

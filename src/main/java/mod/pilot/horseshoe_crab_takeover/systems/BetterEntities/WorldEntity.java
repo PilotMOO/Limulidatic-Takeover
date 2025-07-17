@@ -1,10 +1,12 @@
 package mod.pilot.horseshoe_crab_takeover.systems.BetterEntities;
 
-import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.NervousSystem;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.IEquipment;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.PlusMovementControl;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,13 +24,14 @@ public abstract class WorldEntity extends LivingEntity implements Targeting {
         return target;
     }
     public void setTarget(LivingEntity target){
-        net.minecraftforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.minecraftforge.common.ForgeHooks.onLivingChangeTarget(
-                        this, target, net.minecraftforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
+        LivingChangeTargetEvent changeTargetEvent = ForgeHooks.onLivingChangeTarget(this, target,
+                LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
         if(!changeTargetEvent.isCanceled()) {
             this.target = changeTargetEvent.getNewTarget();
         }
     }
 
+    //See IEquipment for managing equipment
     protected static final Iterable<ItemStack> _EMPTY = new ArrayList<>();
     @Override public @NotNull Iterable<ItemStack> getArmorSlots() {
         if (this instanceof IEquipment iEq) return iEq.getArmorSlots();
