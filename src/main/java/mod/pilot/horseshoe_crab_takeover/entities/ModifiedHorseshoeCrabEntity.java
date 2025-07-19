@@ -175,7 +175,10 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         if (hurt) getNervousSystem().stimulate(this, Stimulant.HURT(!level().isClientSide, source.getEntity(), source, isDeadOrDying()));
 
         Vec3 sourceP = source.getSourcePosition();
-        if (sourceP != null) getMoveControl().rotateTowards(sourceP, 30f);
+        if (sourceP != null) {
+            getMoveControl().rotateTowards(sourceP);
+            getMoveControl().moveTo(sourceP, .25, .5);
+        }
 
         return hurt;
     }

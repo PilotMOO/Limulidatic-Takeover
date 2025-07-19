@@ -47,6 +47,9 @@ public class DataHelper {
             double d0 = Math.sqrt((x * x) + (y * y) + (z * z));
             return new Vec3(x / d0, y / d0, z / d0);
         }
+
+        public static Vec3 from(Vector3d vector){ return new Vec3(vector.x, vector.y, vector.z); }
+        public static Vec3 from(Vector3f vector){ return new Vec3(vector); }
     }
     public static class ForVector3d {
         //From
@@ -94,6 +97,19 @@ public class DataHelper {
             double d0 = Math.sqrt((x * x) + (y * y) + (z * z));
             return new Vector3d(x / d0, y / d0, z / d0);
         }
+
+        public static Vector3d from(Vec3 vector){ return new Vector3d(vector.x, vector.y, vector.z); }
+        public static Vector3d from(Vector3f vector){ return new Vector3d(vector); }
+
+        public static void copy(Vector3d paper, Vec3 ink){
+            paper.x = ink.x; paper.y = ink.y; paper.z = ink.z;
+        }
+        public static void copy(Vector3d paper, Vector3f ink){
+            paper.x = ink.x; paper.y = ink.y; paper.z = ink.z;
+        }
+        public static void copy(Vector3d paper, double x, double y, double z){
+            paper.x = x; paper.y = y; paper.z = z;
+        }
     }
     public static class ForVector3f {
         //From
@@ -140,6 +156,19 @@ public class DataHelper {
             float x = xT - xF, y = yT - yF, z = zT - zF;
             double d0 = Math.sqrt((x * x) + (y * y) + (z * z));
             return new Vector3f((float)(x / d0), (float)(y / d0), (float)(z / d0));
+        }
+
+        public static Vector3f from(Vec3 vector){ return new Vector3f((float)vector.x, (float)vector.y, (float)vector.z); }
+        public static Vector3f from(Vector3d vector){ return new Vector3f((float)vector.x, (float)vector.y, (float)vector.z); }
+
+        public static void copy(Vector3f paper, Vec3 ink){
+            paper.x = (float) ink.x; paper.y = (float) ink.y; paper.z = (float) ink.z;
+        }
+        public static void copy(Vector3f paper, Vector3d ink){
+            paper.x = (float) ink.x; paper.y = (float) ink.y; paper.z = (float) ink.z;
+        }
+        public static void copy(Vector3f paper, float x, float y, float z){
+            paper.x = x; paper.y = y; paper.z = z;
         }
     }
 
