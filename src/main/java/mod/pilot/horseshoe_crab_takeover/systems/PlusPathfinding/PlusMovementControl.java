@@ -15,6 +15,7 @@ public class PlusMovementControl{
     public double speed;
     public double error;
     protected boolean moving;
+    public boolean isMoving(){ return moving; }
 
     protected boolean forceActive = false;
     public final boolean isActive(){

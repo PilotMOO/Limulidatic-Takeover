@@ -3,9 +3,12 @@ package mod.pilot.horseshoe_crab_takeover.events;
 import mod.pilot.horseshoe_crab_takeover.Config;
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
 import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
+import mod.pilot.horseshoe_crab_takeover.items.unique.AStarGridWand;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.Basic2DNode;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -46,5 +49,38 @@ public class HorseshoeHandlerEvents {
             event.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("horseshoe.system.infection_start"), false);
             Horseshoe_Crab_Takeover.activeData.setHasStarted(true);
         }
+    }
+
+    private static Basic2DNode next;
+    private static int inc;
+    @SubscribeEvent
+    public static void serverGridTick(TickEvent.ServerTickEvent event){
+        if (AStarGridWand.placeGrid){
+            for (Basic2DNode[] node : AStarGridWand.grid.grid){
+                for (Basic2DNode n : node){
+                    event.getServer().overworld()
+                            .setBlock(n.getBlockPosWithOffset(AStarGridWand.grid.bottomLeft).below(),
+                                    n.blocked ? Blocks.REDSTONE_BLOCK.defaultBlockState() : Blocks.IRON_BLOCK.defaultBlockState(),
+                                    3);
+                }
+            }
+            event.getServer().overworld()
+                    .setBlock(AStarGridWand.grid.grid[0][0].getBlockPosWithOffset(AStarGridWand.grid.bottomLeft).below(),
+                            Blocks.EMERALD_BLOCK.defaultBlockState(), 3);
+            AStarGridWand.placeGrid = false;
+        }
+        if (AStarGridWand.pathfind){
+            next = AStarGridWand.grid.findPath(AStarGridWand.start, AStarGridWand.end);
+            AStarGridWand.pathfind = false;
+            inc = 0;
+        }
+        if (next != null){
+            if (++inc % 15 == 0) {
+                event.getServer().overworld().setBlock(next.getBlockPosWithOffset(AStarGridWand.grid.bottomLeft),
+                        Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
+                next = next.parent != next ? next.parent : null;
+            }
+        }
+        else inc = 0;
     }
 }

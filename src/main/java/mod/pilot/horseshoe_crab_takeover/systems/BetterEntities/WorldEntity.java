@@ -11,6 +11,7 @@ import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
+import org.joml.Vector3i;
 
 import java.util.ArrayList;
 
@@ -25,6 +26,10 @@ public abstract class WorldEntity extends LivingEntity implements Targeting {
     @Override public void setDeltaMovement(@NotNull Vec3 pDeltaMovement) { DataHelper.ForVector3d.copy(deltaMovement, pDeltaMovement); }
     @Override public @NotNull Vec3 getDeltaMovement() { return DataHelper.ForVec3.from(deltaMovement); }
     public Vector3d getDeltaMovement3d() { return deltaMovement; }
+
+    public Vector3i posVi(){
+        return DataHelper.ForVector3i.from(position());
+    }
 
     public @Nullable LivingEntity target;
 

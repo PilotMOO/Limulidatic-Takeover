@@ -4,6 +4,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 public class DataHelper {
     public static class ForVec3 {
@@ -100,6 +101,7 @@ public class DataHelper {
 
         public static Vector3d from(Vec3 vector){ return new Vector3d(vector.x, vector.y, vector.z); }
         public static Vector3d from(Vector3f vector){ return new Vector3d(vector); }
+        public static Vector3d from(Vector3i vector){ return new Vector3d(vector); }
 
         public static void copy(Vector3d paper, Vec3 ink){
             paper.x = ink.x; paper.y = ink.y; paper.z = ink.z;
@@ -169,6 +171,26 @@ public class DataHelper {
         }
         public static void copy(Vector3f paper, float x, float y, float z){
             paper.x = x; paper.y = y; paper.z = z;
+        }
+    }
+    public static class ForVector3i {
+        public static Vector3i from(Vec3 vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
+        public static Vector3i from(Vector3d vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
+        public static Vector3i from(Vector3f vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
+
+        public static void copy(Vector3i paper, Vec3 ink){
+            paper.x = (int) ink.x; paper.y = (int) ink.y; paper.z = (int) ink.z;
+        }
+        public static void copy(Vector3i paper, Vector3d ink){
+            paper.x = (int) ink.x; paper.y = (int) ink.y; paper.z = (int) ink.z;
+        }
+        public static void copy(Vector3i paper, int x, int y, int z){
+            paper.x = x; paper.y = y; paper.z = z;
+        }
+
+        public static double flatDistance(Vector3i a, Vector3i b){
+            double x = a.x - b.x, z = a.z - b.z;
+            return Math.sqrt(x * x + z * z);
         }
     }
 

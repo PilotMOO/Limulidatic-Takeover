@@ -1,14 +1,15 @@
 package mod.pilot.horseshoe_crab_takeover.entities;
 
 import mod.pilot.horseshoe_crab_takeover.damagetypes.HorseshoeDamageTypes;
+import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.Stimulant;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.n_systems.BasicNervousSystem;
-import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses.ExplodeUponDeathResponse;
-import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.NervousSystem.instances.responses.LightningAttackerResponse;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.WorldEntity;
+import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.INavigation;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.INervousSystem;
 import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.interfaces.IPlusMoveControl;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.AStarTesting.FlatAStarNavigation;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.PlusMovementControl;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -28,22 +29,20 @@ import org.jetbrains.annotations.NotNull;
 
 public class ModifiedHorseshoeCrabEntity extends WorldEntity
         implements INervousSystem<ModifiedHorseshoeCrabEntity, BasicNervousSystem>,
-        IPlusMoveControl<ModifiedHorseshoeCrabEntity, PlusMovementControl> {
+        IPlusMoveControl<ModifiedHorseshoeCrabEntity, PlusMovementControl>,
+        INavigation<ModifiedHorseshoeCrabEntity, FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl>> {
     public ModifiedHorseshoeCrabEntity(EntityType<? extends WorldEntity> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
         RandomizeSize();
-        buildAndSetNervousSystem(this);
         buildAndSetMoveControl(this);
+        buildAndSetNavigation(this);
+        buildAndSetNervousSystem(this);
     }
 
     public final AnimationState walkAnimationState = new AnimationState();
-    public static final EntityDataAccessor<Float> Size = SynchedEntityData.defineId(ModifiedHorseshoeCrabEntity.class, EntityDataSerializers.FLOAT);
-    public float getSize(){
-        return entityData.get(Size);
-    }
-    public void setSize(float size){
-        entityData.set(Size, size);
-    }
+    public static final EntityDataAccessor<Float> SIZE = SynchedEntityData.defineId(ModifiedHorseshoeCrabEntity.class, EntityDataSerializers.FLOAT);
+    public float getSize(){ return entityData.get(SIZE); }
+    public void setSize(float size){ entityData.set(SIZE, size); }
     public void RandomizeSize(){
         setSize((float) getRandom().nextInt(5, 20) / 10);
     }
@@ -51,16 +50,16 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
     @Override
     public void addAdditionalSaveData(@NotNull CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        tag.putFloat("Size", entityData.get(Size));
+        tag.putFloat("Size", entityData.get(SIZE));
     }
     @Override
     public void readAdditionalSaveData(@NotNull CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        entityData.set(Size, tag.getFloat("Size"));
+        entityData.set(SIZE, tag.getFloat("Size"));
     }
     protected void defineSynchedData() {
         super.defineSynchedData();
-        this.entityData.define(Size, 1f);
+        this.entityData.define(SIZE, 1f);
     }
 
     public static AttributeSupplier.Builder createAttributes(){
@@ -126,6 +125,7 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         ns.stimulate(this, Stimulant.IDLE(server, aggro));
         if (aggro) ns.stimulate(this, Stimulant.AGGRESSIVE(server, getTarget()));
 
+        getNavigation().tick();
         getNervousSystem().tickActiveResponses(this);
         getMoveControl().tick();
     }
@@ -176,8 +176,10 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
 
         Vec3 sourceP = source.getSourcePosition();
         if (sourceP != null) {
-            getMoveControl().rotateTowards(sourceP);
-            getMoveControl().moveTo(sourceP, .25, .5);
+            if (getNavigation().decidePath(this, DataHelper.ForVector3i.from(sourceP))){
+                getMoveControl().rotateTowards(sourceP);
+            }
+            //getMoveControl().moveTo(sourceP, .25, .5);
         }
 
         return hurt;
@@ -254,8 +256,20 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
     }
 
 
+
     public PlusMovementControl moveControl;
     @Override public PlusMovementControl buildMoveControl(ModifiedHorseshoeCrabEntity user) { return new PlusMovementControl(user); }
     @Override public void setMoveControl(PlusMovementControl moveControl) { this.moveControl = moveControl; }
     @Override public PlusMovementControl getMoveControl() { return moveControl; }
+
+    public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> starNavigation;
+    @Override public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> buildNavigation(ModifiedHorseshoeCrabEntity user) {
+        FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> nav = new FlatAStarNavigation<>(user, getMoveControl(), .25);
+        nav.setBlockedPredicate(((bPos, level) -> !level.getBlockState(bPos).isAir()));
+        return nav;
+    }
+    @Override public void setNavigation(FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> navigation) {
+        this.starNavigation = navigation;
+    }
+    @Override public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> getNavigation() { return starNavigation; }
 }
