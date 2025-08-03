@@ -36,17 +36,17 @@ public class Basic2DNodeGrid {
 
     public BiFunction<BlockPos, Level, Boolean> notWalkable;
 
-    public Basic2DNodeGrid(Vector3i pos, int sizeX, int sizeZ, BiFunction<BlockPos, Level, Boolean> notWalkable, boolean isCentered){
-        this.bottomLeft = isCentered ? pos.sub(Math.floorDiv(sizeX, 2), 0, Math.floorDiv(sizeZ, 2)) : pos;
-        this.sizeX = sizeX; this.sizeZ = sizeZ;
+    public Basic2DNodeGrid(Vector3i pos, boolean centered, int sizeX, int sizeZ, BiFunction<BlockPos, Level, Boolean> notWalkable){
+        this.bottomLeft = pos;
+        this.grid = new Basic2DNode[this.sizeX = sizeX][this.sizeZ = sizeZ];
+        if (centered) bottomLeft.sub(Math.floorDiv(this.sizeX, 2), 0, Math.floorDiv(this.sizeZ, 2));
         this.notWalkable = notWalkable;
-        this.grid = new Basic2DNode[sizeX][sizeZ];
     }
 
-    public void adjust(Vector3i pos, boolean centered, int xSize, int zSize){
-        this.bottomLeft = centered ? pos.sub(Math.floorDiv(sizeX, 2), 0, Math.floorDiv(sizeZ, 2)) : pos;
-        this.sizeX = xSize; this.sizeZ = zSize;
-        this.grid = new Basic2DNode[sizeX][sizeZ];
+    public void adjust(Vector3i pos, boolean centered, int sizeX, int sizeZ){
+        this.bottomLeft = pos;
+        this.grid = new Basic2DNode[this.sizeX = sizeX][this.sizeZ = sizeZ];
+        if (centered) bottomLeft.sub(Math.floorDiv(this.sizeX, 2), 0, Math.floorDiv(this.sizeZ, 2));
     }
 
     public void fillGrid(Level level){
@@ -62,7 +62,7 @@ public class Basic2DNodeGrid {
     protected static final Comparator<Basic2DNode> compareFCost = Comparator.comparingInt(Basic2DNode::fCost);
     public @Nullable Basic2DNode findPath(Vector3i start, Vector3i end){
         if (ensureInRange(start, end)){
-            if (!skipClean) for (Basic2DNode[] nodes : grid) for (Basic2DNode node : nodes) node.resetCosts();
+            if (!skipClean) for (Basic2DNode[] nodes : grid) for (Basic2DNode node : nodes) if (node != null) node.resetCosts();
             skipClean = false;
 
             Basic2DNode sNode = grid[start.x - bottomLeft.x][start.z - bottomLeft.z];
@@ -70,7 +70,7 @@ public class Basic2DNodeGrid {
 
             ArrayList<Basic2DNode> CLOSED = new ArrayList<>();
             ArrayList<Basic2DNode> OPEN = new ArrayList<>();
-            sNode.initForStart(sNode);
+            sNode.initForStart(eNode);
             OPEN.add(sNode);
             Basic2DNode current;
             while (true) {
@@ -94,7 +94,7 @@ public class Basic2DNodeGrid {
                     }
 
                     if (!n.costInit) n.initCost(current, eNode);
-                    else n.changeParentAndCostIfCheaper(current);
+                    else n.switchCosts(current);
 
                     if (!OPEN.contains(n)) OPEN.add(n);
                 }

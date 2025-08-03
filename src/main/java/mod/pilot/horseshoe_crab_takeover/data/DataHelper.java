@@ -173,19 +173,45 @@ public class DataHelper {
             paper.x = x; paper.y = y; paper.z = z;
         }
     }
+
+    /**
+     * NOTE! All values returned by these methods that involve higher-precision initial values (floats, double, variables that contain said values)
+     * WILL have their values FLOORED before being applied (unless stated otherwise)
+     * <p>Effectively, converting a {@code Vector3d[6.7, 8.9, -4.1]} to {@code Vector3i} via {@link DataHelper.ForVector3i#from(Vector3d)} will return a {@code Vector3i[6, 8, -4]}</p>
+     * If Ceiling is preferred, utilize the ceiling-explicit methods
+     */
     public static class ForVector3i {
-        public static Vector3i from(Vec3 vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
-        public static Vector3i from(Vector3d vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
-        public static Vector3i from(Vector3f vector){ return new Vector3i((int)vector.x, (int)vector.y, (int)vector.z); }
+        private static int floor(double a) { return (int)Math.floor(a); }
+        private static int ceil(double a) { return (int)Math.ceil(a); }
+        public static Vector3i from(Vec3 vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
+        public static Vector3i from(Vector3d vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
+        public static Vector3i from(Vector3f vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
 
         public static void copy(Vector3i paper, Vec3 ink){
-            paper.x = (int) ink.x; paper.y = (int) ink.y; paper.z = (int) ink.z;
+            paper.x = floor(ink.x); paper.y = floor(ink.y); paper.z = floor(ink.z);
         }
         public static void copy(Vector3i paper, Vector3d ink){
-            paper.x = (int) ink.x; paper.y = (int) ink.y; paper.z = (int) ink.z;
+            paper.x = floor(ink.x); paper.y = floor(ink.y); paper.z = floor(ink.z);
+        }
+        public static void copy(Vector3i paper, Vector3f ink){
+            paper.x = floor(ink.x); paper.y = floor(ink.y); paper.z = floor(ink.z);
         }
         public static void copy(Vector3i paper, int x, int y, int z){
             paper.x = x; paper.y = y; paper.z = z;
+        }
+
+        public static Vector3i ceilFrom(Vec3 vector){ return new Vector3i(ceil(vector.x), ceil(vector.y), ceil(vector.z)); }
+        public static Vector3i ceilFrom(Vector3d vector){ return new Vector3i(ceil(vector.x), ceil(vector.y), ceil(vector.z)); }
+        public static Vector3i ceilFrom(Vector3f vector){ return new Vector3i(ceil(vector.x), ceil(vector.y), ceil(vector.z)); }
+
+        public static void ceilCopy(Vector3i paper, Vec3 ink){
+            paper.x = ceil(ink.x); paper.y = ceil(ink.y); paper.z = ceil(ink.z);
+        }
+        public static void ceilCopy(Vector3i paper, Vector3d ink){
+            paper.x = ceil(ink.x); paper.y = ceil(ink.y); paper.z = ceil(ink.z);
+        }
+        public static void ceilCopy(Vector3i paper, Vector3f ink){
+            paper.x = ceil(ink.x); paper.y = ceil(ink.y); paper.z = ceil(ink.z);
         }
 
         public static double flatDistance(Vector3i a, Vector3i b){

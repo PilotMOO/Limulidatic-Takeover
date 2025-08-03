@@ -61,14 +61,16 @@ public class PlusMovementControl{
                     relX *= speed; relZ *= speed;
                     Vector3d delta = new Vector3d(relX, 0, relZ);
                     user.setDeltaMovement(delta);
-                } else{
-                    moving = false;
-                }
+                } else moving = false;
             }
         }
     }
 
     public void rotateTowards(Vec3 to) {
+        Vec3 from = user.position();
+        rotateToRelative(from.x - to.x, from.z - to.z);
+    }
+    public void rotateTowards(Vector3d to) {
         Vec3 from = user.position();
         rotateToRelative(from.x - to.x, from.z - to.z);
     }

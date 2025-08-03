@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "mod.pilot.horseshoe_crab_takeover.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "horseshoe_crab_takeover.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "client.LevelRenderInjectMixin"
+  ],
+  "minVersion": "0.8"
+}

@@ -1,7 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding;
 
 import net.minecraft.core.BlockPos;
-import org.joml.Vector3d;
 import org.joml.Vector3i;
 
 import java.util.ArrayList;
@@ -72,7 +71,7 @@ public class Basic2DNode {
         }
         costInit = true;
     }
-    public void changeParentAndCostIfCheaper(Basic2DNode parent){
+    public void switchCosts(Basic2DNode parent){
         int newG = parent.gCost + (x != parent.x && z != parent.z ? DIAGONAL_STEP : STRAIGHT_STEP);
         if (newG < gCost || this.parent == null) {
             this.parent = parent;
@@ -93,12 +92,13 @@ public class Basic2DNode {
         public static Snapshot deadWeight(int x, int z, boolean assumeBlocked){
             return new Snapshot(x, z, assumeBlocked, null, -1, -1);
         }
-        public static ArrayList<Snapshot> snapshotPath(Basic2DNode endNode, boolean startNodeFirst){
+        public static ArrayList<Snapshot> snapshotPathToArray(Basic2DNode endNode, boolean startNodeFirst){
             Snapshot c = snapshot(endNode, true);
             ArrayList<Snapshot> path = new ArrayList<>();
+            path.add(c);
             while (c.parent != null) path.add((c = c.parent));
             if (startNodeFirst){
-                ArrayList<Snapshot> invert = new ArrayList<>();
+                ArrayList<Snapshot> invert = new ArrayList<>(path.size());
                 for (int index = path.size() - 1; index >= 0; index--) invert.add(path.get(index));
                 return invert;
             } else return path;

@@ -31,7 +31,7 @@ public class AStarGridWand extends Item {
             if (pContext.isSecondaryUseActive()) {
                 pContext.getPlayer().displayClientMessage(Component.literal("Creating new grid!"), true);
                 Vector3i pos = new Vector3i(bPos.getX(), bPos.getY(), bPos.getZ());
-                grid = new Basic2DNodeGrid(pos, 10, 10, AStarGridWand::isNotWalkable, true);
+                grid = new Basic2DNodeGrid(pos, true, 10, 10, AStarGridWand::isNotWalkable);
                 grid.fillGrid(server);
                 placeGrid = true;
             } else if (grid != null){

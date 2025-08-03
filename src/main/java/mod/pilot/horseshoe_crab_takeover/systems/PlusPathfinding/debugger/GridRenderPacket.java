@@ -1,62 +1,53 @@
-package mod.pilot.horseshoe_crab_takeover.entities.client;
+package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.debugger;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
-import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
-import mod.pilot.horseshoe_crab_takeover.entities.ModifiedHorseshoeCrabEntity;
+import mod.pilot.horseshoe_crab_takeover.systems.BetterEntities.WorldEntity;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.AStarTesting.FlatAStarNavigation;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.Basic2DNode;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.Basic2DNodeGrid;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.PlusMovementControl;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.NotNull;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
-import org.joml.Vector3d;
-import org.joml.Vector3i;
+import org.joml.Quaternionf;
 
-import java.util.ArrayList;
-
-public class HorseshoeCrabRenderer extends LivingEntityRenderer<ModifiedHorseshoeCrabEntity, HorseshoeCrabModel<ModifiedHorseshoeCrabEntity>> {
-    public HorseshoeCrabRenderer(EntityRendererProvider.Context context) {
-        super(context, new HorseshoeCrabModel<>(context.bakeLayer(HorseshoeCrabModel.LAYER_LOCATION)), 0.2f);
-    }
+@OnlyIn(Dist.CLIENT)
+public class GridRenderPacket implements RenderDebuggerQue.IRenderInstructions {
+    public GridRenderPacket(FlatAStarNavigation<? extends WorldEntity, ? extends PlusMovementControl> NAV){ this.nav = NAV; }
+    FlatAStarNavigation<? extends WorldEntity, ? extends PlusMovementControl> nav;
 
     @Override
-    public @NotNull ResourceLocation getTextureLocation(@NotNull ModifiedHorseshoeCrabEntity pEntity) {
-        return new ResourceLocation(Horseshoe_Crab_Takeover.MOD_ID, "textures/entity/horseshoe_crab_texture.png");
-    }
-
-    @Override
-    public void render(@NotNull ModifiedHorseshoeCrabEntity crab, float yaw, float partialTicks,
-                       @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight) {
-        float size = crab.getSize();
-        poseStack.scale(size, size, size);
-        super.render(crab, yaw, partialTicks, poseStack, buffer, packedLight);
-
-        Basic2DNodeGrid grid = crab.getNavigation().grid;
+    public void render(MultiBufferSource.BufferSource buffer, PoseStack poseStack, float partial, long finishNanoTime, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projection) {
+        Basic2DNodeGrid grid = nav.grid;
         if (grid != null && grid.grid != null) {
             for (Basic2DNode[] nodes : grid.grid) {
                 for (Basic2DNode node : nodes) {
+                    poseStack.pushPose();
                     BlockPos bPos = node.getBlockPosWithOffset(grid.bottomLeft);
-                    SimpleParticleType particle = node.blocked ? ParticleTypes.SMOKE : ParticleTypes.BUBBLE;
-                    crab.level().addParticle(particle, bPos.getX() + .5, bPos.getY() + .5, bPos.getZ() + .5, 0, 0, 0);
-                }
-            }
-            ArrayList<Basic2DNode.Snapshot> snap = crab.getNavigation().pathSnapshot;
-            if (snap != null){
-                for (Basic2DNode.Snapshot snap1 : snap){
-                    Vector3i vi = snap1.getPosWithOffset(grid.bottomLeft);
-                    crab.level().addParticle(ParticleTypes.CRIT, vi.x + .5, vi.y + .75, vi.z + .5, 0, 0, 0);
+                    Vec3 relative = bPos.getCenter().subtract(camera.getPosition());
+                    poseStack.translate(relative.x, relative.y, relative.z);
+                    poseStack.rotateAround(new Quaternionf(), 0, 0, 0);
+                    PoseStack.Pose pose = poseStack.last();
+
+                    float r = 0f, g = 1f, b = 0f;
+                    if (node.blocked){ r = 1f; g = 0f; }
+                    drawTaperedCube(buffer.getBuffer(RenderType.lightning()),
+                            pose.pose(), pose.normal(),
+                            0.5f, 0.5f, 0.5f, 0.5f, 0.5f,
+                            OverlayTexture.NO_OVERLAY, LightTexture.FULL_BRIGHT,
+                            r, g, b, .25f,
+                            0, 1, 0, 1);
+                    poseStack.popPose();
                 }
             }
         }

@@ -27,8 +27,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fluids.FluidType;
 import org.jetbrains.annotations.NotNull;
 
-public class ModifiedHorseshoeCrabEntity extends WorldEntity
-        implements INervousSystem<ModifiedHorseshoeCrabEntity, BasicNervousSystem>,
+public class ModifiedHorseshoeCrabEntity extends WorldEntity implements
+        INervousSystem<ModifiedHorseshoeCrabEntity, BasicNervousSystem>,
         IPlusMoveControl<ModifiedHorseshoeCrabEntity, PlusMovementControl>,
         INavigation<ModifiedHorseshoeCrabEntity, FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl>> {
     public ModifiedHorseshoeCrabEntity(EntityType<? extends WorldEntity> pEntityType, Level pLevel) {
@@ -174,8 +174,9 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         boolean hurt = super.hurt(source, pAmount);
         if (hurt) getNervousSystem().stimulate(this, Stimulant.HURT(!level().isClientSide, source.getEntity(), source, isDeadOrDying()));
 
-        Vec3 sourceP = source.getSourcePosition();
-        if (sourceP != null) {
+        Entity from = source.getEntity();
+        if (from != null) {
+            Vec3 sourceP = from.position();
             if (getNavigation().decidePath(this, DataHelper.ForVector3i.from(sourceP))){
                 getMoveControl().rotateTowards(sourceP);
             }
@@ -255,8 +256,6 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
         return nervousSystem;
     }
 
-
-
     public PlusMovementControl moveControl;
     @Override public PlusMovementControl buildMoveControl(ModifiedHorseshoeCrabEntity user) { return new PlusMovementControl(user); }
     @Override public void setMoveControl(PlusMovementControl moveControl) { this.moveControl = moveControl; }
@@ -265,11 +264,12 @@ public class ModifiedHorseshoeCrabEntity extends WorldEntity
     public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> starNavigation;
     @Override public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> buildNavigation(ModifiedHorseshoeCrabEntity user) {
         FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> nav = new FlatAStarNavigation<>(user, getMoveControl(), .25);
-        nav.setBlockedPredicate(((bPos, level) -> !level.getBlockState(bPos).isAir()));
+        nav.setBlockedPredicate(((bPos, level) -> !level.getBlockState(bPos).isAir() || level.getBlockState(bPos.below()).isAir()));
         return nav;
     }
     @Override public void setNavigation(FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> navigation) {
         this.starNavigation = navigation;
     }
     @Override public FlatAStarNavigation<ModifiedHorseshoeCrabEntity, PlusMovementControl> getNavigation() { return starNavigation; }
+    @Override public double getNavSpeed() { return this.getAttributeValue(Attributes.MOVEMENT_SPEED); }
 }

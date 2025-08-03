@@ -6,6 +6,7 @@ import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
 import mod.pilot.horseshoe_crab_takeover.items.unique.AStarGridWand;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.Basic2DNode;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
@@ -14,6 +15,7 @@ import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.joml.Vector3i;
 
 import java.util.ArrayList;
 
@@ -51,7 +53,8 @@ public class HorseshoeHandlerEvents {
         }
     }
 
-    private static Basic2DNode next;
+    private static ArrayList<Basic2DNode.Snapshot> path;
+    private static Basic2DNode.Snapshot current;
     private static int inc;
     @SubscribeEvent
     public static void serverGridTick(TickEvent.ServerTickEvent event){
@@ -70,15 +73,23 @@ public class HorseshoeHandlerEvents {
             AStarGridWand.placeGrid = false;
         }
         if (AStarGridWand.pathfind){
-            next = AStarGridWand.grid.findPath(AStarGridWand.start, AStarGridWand.end);
+            Basic2DNode node = AStarGridWand.grid.findPath(AStarGridWand.start, AStarGridWand.end);
             AStarGridWand.pathfind = false;
             inc = 0;
+            if (node != null){
+                path = Basic2DNode.Snapshot.snapshotPathToArray(node, true);
+                current = path.get(0);
+            }
         }
-        if (next != null){
+        if (path != null){
             if (++inc % 15 == 0) {
-                event.getServer().overworld().setBlock(next.getBlockPosWithOffset(AStarGridWand.grid.bottomLeft),
+                Vector3i pos = current.getPosWithOffset(AStarGridWand.grid.bottomLeft);
+                event.getServer().overworld().setBlock(new BlockPos(pos.x, pos.y, pos.z),
                         Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
-                next = next.parent != next ? next.parent : null;
+                int index = path.indexOf(current);
+                if (++index >= path.size()){
+                    path = null; current = null;
+                } else current = path.get(index);
             }
         }
         else inc = 0;

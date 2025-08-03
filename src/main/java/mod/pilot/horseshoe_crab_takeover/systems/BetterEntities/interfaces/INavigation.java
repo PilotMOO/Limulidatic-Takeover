@@ -8,6 +8,7 @@ public interface INavigation<U extends WorldEntity, N extends FlatAStarNavigatio
     N buildNavigation(U user);
     void setNavigation(N navigation);
     N getNavigation();
+    double getNavSpeed();
 
     default void buildAndSetNavigation(U user){
         setNavigation(buildNavigation(user));
