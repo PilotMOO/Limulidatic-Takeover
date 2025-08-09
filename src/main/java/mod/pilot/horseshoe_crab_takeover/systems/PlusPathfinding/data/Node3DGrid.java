@@ -1,4 +1,4 @@
-package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding;
+package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -16,13 +16,13 @@ public class Node3DGrid {
     public int sizeX, sizeY, sizeZ;
     public boolean skipClean;
 
-    public BiFunction<BlockPos, Level, Boolean> invalidNodePosition;
+    public BiFunction<BlockPos, Level, Byte> nodeStateTest;
 
-    public Node3DGrid(Vector3i pos, boolean centered, int sizeX, int sizeY, int sizeZ, BiFunction<BlockPos, Level, Boolean> invalidNodePosition){
+    public Node3DGrid(Vector3i pos, boolean centered, int sizeX, int sizeY, int sizeZ, BiFunction<BlockPos, Level, Byte> nodeStateTest){
         this.lowerBottomLeft = pos;
         this.grid = new Node3D[this.sizeX = sizeX][this.sizeY = sizeY][this.sizeZ = sizeZ];
         if (centered) lowerBottomLeft.sub(Math.floorDiv(this.sizeX, 2), Math.floorDiv(this.sizeY, 2), Math.floorDiv(this.sizeZ, 2));
-        this.invalidNodePosition = invalidNodePosition;
+        this.nodeStateTest = nodeStateTest;
     }
 
     public void adjust(Vector3i pos, boolean centered, int sizeX, int sizeY, int sizeZ){
@@ -32,14 +32,12 @@ public class Node3DGrid {
     }
 
     public void fillGrid(Level level){
-        BlockPos.MutableBlockPos mBPos = new BlockPos.MutableBlockPos(lowerBottomLeft.x, lowerBottomLeft.y, lowerBottomLeft.z);
+        BlockPos.MutableBlockPos mBPos = new BlockPos.MutableBlockPos();
         for (int x = 0; x < sizeX; x++){
-            mBPos.move(1, -(sizeY - 1), -(sizeZ - 1));
-            for (int y = 0; y < sizeX; y++) {
-                mBPos.move(0, 1, -(sizeZ - 1));
+            for (int y = 0; y < sizeY; y++) {
                 for (int z = 0; z < sizeZ; z++) {
-                    mBPos.move(0, 0, 1);
-                    grid[x][y][z] = new Node3D(x, y, z, invalidNodePosition.apply(mBPos, level));
+                    mBPos.set(lowerBottomLeft.x + x, lowerBottomLeft.y + y, lowerBottomLeft.z + z);
+                    grid[x][y][z] = new Node3D(x, y, z, nodeStateTest.apply(mBPos, level));
                 }
             }
         }
@@ -69,7 +67,9 @@ public class Node3DGrid {
                 current.closed = true;
 
                 if (current == eNode) break;
-                for (Node3D n : getValidSisters(current)){
+                ArrayList<Node3D> sisters = getValidSisters(current);
+                OPEN.ensureCapacity(OPEN.size() + sisters.size());
+                for (Node3D n : sisters){
                     if (n.parent == null) n.initCost(current, eNode);
                     else n.switchCosts(current);
                     if (!OPEN.contains(n)) OPEN.add(n);
@@ -100,7 +100,7 @@ public class Node3DGrid {
      * Gets all VALID "sister" nodes within 1 step of the supplied node.
      * Does NOT return any of the "true corners" (I.E. the corners of the 3x3x3 cube it checks)
      * @param center the "center" node that is relative to all the sister nodes
-     * @return An ArrayList of Sister nodes within 1 step of the supplied node. It EXCLUDES invalid nodes (blocked, closed, not present, etc.)
+     * @return An ArrayList of Sister nodes within 1 step of the supplied node. It EXCLUDES invalid nodes (state, closed, not present, etc.)
      */
     public ArrayList<Node3D> getValidSisters(Node3D center){
         //Init capacity so resizing doesn't fuck with performance as much
@@ -112,7 +112,8 @@ public class Node3DGrid {
 
         Node3D[] diagonal = diagonals(center);
         for (int index = 0; index < 12; index++){
-            Node3D node = diagonal[index];
+            Node3D node;
+            if ((node = diagonal[index]) == null) continue;
             Node3D c1, c2;
             //the first and last 4 are of the top and bottom, so we want the "true cardinal" directions-- North, East, South, West--
             //relative to the starting node.
@@ -126,8 +127,8 @@ public class Node3DGrid {
                 c1 = getIfPresent(node.x, center.y, center.z); //Relative X
                 c2 = getIfPresent(center.x, center.y, node.z); //Relative Z
             }
-            //Add the sister to the blacklist if the intercepting relative nodes are not present or blocked
-            if ((c1 == null || c1.blocked) && (c2 == null || c2.blocked)) blacklist.add(node);
+            //Add the sister to the blacklist if the intercepting relative nodes are not present or state
+            if ((c1 == null || !c1.relativeTraversable()) && (c2 == null || !c2.relativeTraversable())) blacklist.add(node);
         }
         //Loop through all X-Y-Z coords from -1 to 1 relative to the current node
         for (int x = -1; x <= 1; x++){
@@ -139,7 +140,7 @@ public class Node3DGrid {
                         //If all are zero then that's just the starting node, and we don't want that one
                     else if (x == y && y == z) continue;
                     Node3D node = getIfPresent(center.x + x, center.y + y, center.z + z);
-                    if (node == null || node.blocked || node.closed || blacklist.contains(node)) continue; //Discard if we don't need to check it
+                    if (node == null || !node.open() || node.closed || blacklist.contains(node)) continue; //Discard if we don't need to check it
                     sisters.add(node);
                 }
             }

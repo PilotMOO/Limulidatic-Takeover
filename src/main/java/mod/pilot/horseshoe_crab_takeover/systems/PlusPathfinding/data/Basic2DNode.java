@@ -1,6 +1,7 @@
-package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding;
+package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
 import net.minecraft.core.BlockPos;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 
 import java.util.ArrayList;
@@ -83,7 +84,7 @@ public class Basic2DNode {
         return new BlockPos(offset.x + x, offset.y, offset.z + z);
     }
 
-    public record Snapshot(int x, int z, boolean blocked, Snapshot parent, int gCost, int hCost){
+    public record Snapshot(int x, int z, boolean blocked, @Nullable Snapshot parent, int gCost, int hCost) implements INode{
         public static Snapshot snapshot(Basic2DNode node, boolean preserveParent){
             return new Snapshot(node.x, node.z, node.blocked,
                     preserveParent && node.parent != node && node.parent != null ? snapshot(node.parent, true) : null,
@@ -107,6 +108,12 @@ public class Basic2DNode {
         public int fCost(){ return gCost + hCost; }
 
         public Vector3i getPosWithOffset(Vector3i offset){
+            return new Vector3i(offset.x + x, offset.y, offset.z + z);
+        }
+
+        @Override public @Nullable INode getParent() { return parent(); }
+        @Override
+        public Vector3i getWithOffset(Vector3i offset) {
             return new Vector3i(offset.x + x, offset.y, offset.z + z);
         }
     }

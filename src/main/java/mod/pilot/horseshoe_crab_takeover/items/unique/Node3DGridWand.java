@@ -1,6 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover.items.unique;
 
-import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Basic2DNodeGrid;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3DGrid;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -14,13 +14,13 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3i;
 
-public class AStarGridWand extends Item {
-    public AStarGridWand(Properties pProperties) {
+public class Node3DGridWand extends Item {
+    public Node3DGridWand(Properties pProperties) {
         super(pProperties);
     }
 
-    public static Basic2DNodeGrid grid;
-    public static boolean placeGrid;
+    public static Node3DGrid grid;
+    public static boolean renderGrid;
     public static Vector3i start, end;
     public static boolean pathfind;
 
@@ -30,10 +30,10 @@ public class AStarGridWand extends Item {
             BlockPos bPos = pContext.getClickedPos().relative(pContext.getClickedFace());
             if (pContext.isSecondaryUseActive()) {
                 pContext.getPlayer().displayClientMessage(Component.literal("Creating new grid!"), true);
-                Vector3i pos = new Vector3i(bPos.getX(), bPos.getY(), bPos.getZ());
-                grid = new Basic2DNodeGrid(pos, true, 10, 10, AStarGridWand::isNotWalkable);
+                Vector3i pos = new Vector3i(bPos.getX() - 10, bPos.getY(), bPos.getZ() - 10);
+                grid = new Node3DGrid(pos, false, 20, 20, 20, Node3DGridWand::nodeState);
                 grid.fillGrid(server);
-                placeGrid = true;
+                renderGrid = true;
             } else if (grid != null){
                 if (start == null){
                     start = new Vector3i(bPos.getX(), bPos.getY(), bPos.getZ());
@@ -60,7 +60,7 @@ public class AStarGridWand extends Item {
                 } else {
                     pPlayer.displayClientMessage(Component.literal("Clearing EVERYTHING!"), true);
                     grid = null;
-                    placeGrid = false;
+                    renderGrid = false;
                 }
                 start = end = null;
                 pathfind = false;
@@ -68,15 +68,38 @@ public class AStarGridWand extends Item {
             else if (grid != null){
                 pPlayer.displayClientMessage(Component.literal("Regenerating node values..."), true);
                 grid.fillGrid(pLevel);
-                placeGrid = true;
+                renderGrid = true;
             }
         }
         pPlayer.getCooldowns().addCooldown(this, 5);
         return super.use(pLevel, pPlayer, pUsedHand);
     }
 
-    public static boolean isNotWalkable(BlockPos bPos, Level level){
-        boolean flag = !level.getBlockState(bPos).isAir();
-        return flag;
+    public static byte nodeState(BlockPos bPos, Level level){
+        if (!level.getBlockState(bPos).isAir()) return 2;
+
+        if (!level.getBlockState(bPos.below()).isAir()) return 0;
+        if (checkAround(bPos, level)) return 1;
+
+        return 2;
+    }
+
+    private static boolean checkAround(BlockPos bPos, Level level){
+        BlockPos.MutableBlockPos mBPos = new BlockPos.MutableBlockPos();
+
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++){
+                    if (x != 0 && y != 0 && z != 0) continue;
+                    else if (x == y && y == z) continue;
+                    mBPos.set(bPos.getX() + x, bPos.getY() + y, bPos.getZ() + z);
+                    if (checkBPos(mBPos, level)) return true;
+                }
+            }
+        }
+        return false;
+    }
+    private static boolean checkBPos(BlockPos bPos, Level level){
+        return level.getBlockState(bPos).isAir() && !level.getBlockState(bPos.below()).isAir();
     }
 }

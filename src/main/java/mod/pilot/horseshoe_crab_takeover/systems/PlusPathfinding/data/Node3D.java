@@ -1,7 +1,10 @@
-package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding;
+package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
 import net.minecraft.core.BlockPos;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
+
+import java.util.ArrayList;
 
 public class Node3D {
     //step value 1, x10. For steps where only ONE value is different
@@ -11,14 +14,19 @@ public class Node3D {
     //step value (1.4^2) + (1^2) = 2.96, or roughly 1.7. x10. For steps where ALL are different
     private static final int THREE_PAIR_STEP = 17;
 
-    public Node3D(int x, int y, int z, boolean blocked){
+    public Node3D(int x, int y, int z, byte state){
         this.x = x; this.y = y; this.z = z;
-        this.blocked = blocked;
+        this.state = state;
     }
     public final int x, y, z;
     public Node3D parent;
 
-    public boolean blocked;
+    public byte state; //0 == OPEN, 1 == RELATIVE TRAVERSABLE, 2 == FULLY BLOCKED
+    public boolean open(){ return state == 0; } //OPEN nodes can be stood on
+    public boolean traversable(){ return state == 1; } //TRAVERSABLE nodes allow passage through to another node (open or relative)
+    public boolean relativeTraversable(){ return state < 2; } //RELATIVE TRAVERSABLE nodes ONLY allow passage through to another node, but NOT a valid node in it of itself
+    public boolean blocked(){ return state == 2; } //BLOCKED, nodes that canNOT be pathed through
+
     public boolean closed;
 
     //G = dist from start, H = dist from target, F is both added
@@ -106,18 +114,47 @@ public class Node3D {
     }
 
     public BlockPos getBlockPosWithOffset(Vector3i offset){
-        return new BlockPos(offset.x + x, offset.y, offset.z + z);
+        return new BlockPos(offset.x + x, offset.y + y, offset.z + z);
     }
 
     public static class Grounded extends Node3D {
-        public Grounded(int x, int y, int z, boolean blocked) {
-            super(x, y, z, blocked);
+        public Grounded(int x, int y, int z, byte state) {
+            super(x, y, z, state);
         }
 
         public boolean jumpNode;
         @Override public void resetCosts() {
             super.resetCosts();
             jumpNode = false;
+        }
+    }
+
+    public record Snapshot(int x, int y, int z, byte state, @Nullable Node3D.Snapshot parent, int gCost, int hCost) implements INode {
+        public static Node3D.Snapshot snapshot(Node3D node, boolean preserveParent){
+            return new Node3D.Snapshot(node.x, node.y, node.z, node.state,
+                    preserveParent && node.parent != node && node.parent != null ? snapshot(node.parent, true) : null,
+                    node.gCost, node.hCost);
+        }
+        public static Node3D.Snapshot deadWeight(int x, int y, int z, byte assumeState){
+            return new Node3D.Snapshot(x, y, z, assumeState, null, -1, -1);
+        }
+        public static ArrayList<Node3D.Snapshot> snapshotPathToArray(Node3D endNode, boolean startNodeFirst){
+            Node3D.Snapshot c = snapshot(endNode, true);
+            ArrayList<Node3D.Snapshot> path = new ArrayList<>();
+            path.add(c);
+            while (c.parent != null) path.add((c = c.parent));
+            if (startNodeFirst){
+                ArrayList<Node3D.Snapshot> invert = new ArrayList<>(path.size());
+                for (int index = path.size() - 1; index >= 0; index--) invert.add(path.get(index));
+                return invert;
+            } else return path;
+        }
+
+        public int fCost(){ return gCost + hCost; }
+
+        @Override public @Nullable INode getParent() { return parent(); }
+        @Override public Vector3i getWithOffset(Vector3i offset) {
+            return new Vector3i(offset.x + x, offset.y + y, offset.z + z);
         }
     }
 }

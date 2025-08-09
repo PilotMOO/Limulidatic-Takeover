@@ -1,4 +1,4 @@
-package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding;
+package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;

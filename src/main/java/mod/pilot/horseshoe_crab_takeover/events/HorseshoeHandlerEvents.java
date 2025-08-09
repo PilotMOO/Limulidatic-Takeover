@@ -4,10 +4,15 @@ import mod.pilot.horseshoe_crab_takeover.Config;
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
 import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
 import mod.pilot.horseshoe_crab_takeover.items.unique.AStarGridWand;
-import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.Basic2DNode;
+import mod.pilot.horseshoe_crab_takeover.items.unique.Node3DGridWand;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Basic2DNode;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3D;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.TickEvent;
@@ -93,5 +98,48 @@ public class HorseshoeHandlerEvents {
             }
         }
         else inc = 0;
+    }
+
+    private static ArrayList<Node3D.Snapshot> path3d;
+    private static Node3D.Snapshot current3d;
+    private static int inc3d;
+    @SubscribeEvent
+    public static void serverGridTick3d(TickEvent.ServerTickEvent event){
+        ServerLevel server = event.getServer().overworld();
+        if (Node3DGridWand.renderGrid){
+            for (Node3D[][] node : Node3DGridWand.grid.grid){
+                for (Node3D[] node1 : node){
+                    for (Node3D n : node1){
+                        if (n.blocked()) continue;
+                        BlockPos bPos = n.getBlockPosWithOffset(Node3DGridWand.grid.lowerBottomLeft);
+                        //server.setBlock(bPos, Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
+                        SimpleParticleType particle = n.traversable() ? ParticleTypes.BUBBLE_POP : ParticleTypes.BUBBLE;
+                        server.sendParticles(particle, bPos.getX() + .5, bPos.getY() + .5, bPos.getZ() + .5,
+                                1, 0, 0, 0, 0);
+                    }
+                }
+            }
+        }
+        if (Node3DGridWand.pathfind){
+            Node3D node = Node3DGridWand.grid.findPath(Node3DGridWand.start, Node3DGridWand.end);
+            Node3DGridWand.pathfind = false;
+            inc3d = 0;
+            if (node != null){
+                path3d = Node3D.Snapshot.snapshotPathToArray(node, true);
+                current3d = path3d.get(0);
+            }
+        }
+        if (path3d != null){
+            if (++inc3d % 15 == 0) {
+                Vector3i pos = current3d.getWithOffset(Node3DGridWand.grid.lowerBottomLeft);
+                event.getServer().overworld().setBlock(new BlockPos(pos.x, pos.y, pos.z),
+                        Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
+                int index = path3d.indexOf(current3d);
+                if (++index >= path3d.size()){
+                    path3d = null; current3d = null;
+                } else current3d = path3d.get(index);
+            }
+        }
+        else inc3d = 0;
     }
 }
