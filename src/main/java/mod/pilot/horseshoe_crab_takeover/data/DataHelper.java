@@ -226,4 +226,98 @@ public class DataHelper {
     public static float lerp(float a, float b, float partial){
         return a + (b - a) * partial;
     }
+
+    /**
+     * Sets the bit of a "word" (long) at the given offset to whatever the bit argument is
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param bit the bit (in the form of a boolean) to write. 0 or 1
+     * @return A new "word" that is identical to the "word" argument except for the bit at the supplied index being changed to the supplied bit argument.
+     * May be fully identical if the original bit was the same as the argument
+     */
+    public static long writeBit(final long word, final int bitOffset, boolean bit){
+        return bit ? bit1AtPosition(word, bitOffset) : bit0AtPosition(word, bitOffset);
+    }
+    /**
+     * Sets the bit at the supplied index of the "word" (long) to 1, regardless of the original value
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @return A new "word" that is identical to the "word" argument except for the bit at the supplied index being changed to 1.
+     * May be fully identical if the original bit was the same as the argument
+     */
+    public static long bit1AtPosition(final long word, final int bitOffset){
+        //Create a mask by creating a long[00...01], shift by the offset, then "Or" it against the word. return
+        return word | (1L << bitOffset);
+    }
+    /**
+     * Sets the bit at the supplied index of the "word" (long) to 0, regardless of the original value
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @return A new "word" that is identical to the "word" argument except for the bit at the supplied index being changed to 0.
+     * May be fully identical if the original bit was the same as the argument
+     */
+    public static long bit0AtPosition(final long word, final int bitOffset){
+        //"Not" the word (I.E. invert all bits, so 1 becomes 0 and vise versa)
+        //"Or" it by the mask-- a bit of 1 offset to the position, so [00...1...00] where 1 is the wanted bit position setting it to 1
+        //Then "Not" it again, so it goes back to the original BUT the part masked (which set the "NOT" to 1) is now 0
+        return ~(~word | (1L << bitOffset));
+    }
+    /**
+     * Writes a list of bits to the supplied word then returns the result. Does NOT modify any of the variables, just returns a new "word" (long)
+     * <p>The "ink" must have all of its relevant bits secluded to the first bits of the word within the inkRange as defined by the last argument.
+     * The rest of the unrelated bits in the word need to be 0</p>
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static long writeRange(final long word, final int bitOffset, final long ink, final int inkRange){
+        //Define a mask of all 1's, bitshift to the right by the inkRange, then NOT.
+        //Then shift the mask over by the bitOffset then NOT again so all the bits will be 1's excluding the 0's covering the
+        //area where the wanted bits are
+        long mask = ~(~(-1L << inkRange) << bitOffset);
+        //Mask all the wanted bits in the word to 0 by "Not"ing the word, "Or"ing the result with the mask
+        //(setting all values within the range of the mask in the negative word to 1)
+        //then "Not"ing the word again to return to the original value, but with the wanted bits wiped and set to 0.
+        //Example: starting with bits [11111111], and we want to mask 4 bits that are offset by 1. Result would be [11100001]
+        long wordMasked = ~(~word | mask);
+        return wordMasked | (ink << bitOffset); //Finally, "Or" in the ink (bits to write)
+    }
+
+    /**
+     * Locates a range of bits within the "word" then isolates it, returning a word with all the wanted bits
+     * pushed to the first indexes with everything else defaulted to 0
+     * @param word the "word" (long) to read from (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bits to read. Index 0 is the first bit farthest to the right.
+     * @param range how many bits to read, starting from the index outwards. Can NOT be greater than or equal to 64 (the amount of bits within a long)
+     * @return a new "word" with all the wanted bits (defined by the bitOffset and range) isolated to the starting index outwards.
+     * All other bits default to zero
+     */
+    public static long isolateRange(final long word, final int bitOffset, final int range){
+        //Shift the word over by the offset to shave off all irrelevant bits in front of the wanted ones (seen in [word >>> bitOffset])
+        //Create a mask of full 1's then bitshift in as many zeros as there are bits to save (seen in [-1L << range])
+        //Then use NOT-wise bitmasking to preserve the portion we want while defaulting everything else to 0 (seen in the nested ~(~ )
+        //NOT-wise bitmasking works by creating a mask that covers everything wanted with 0's and everything else with 1's
+        //Bits: [10110100], we want the first 4, so we make a bitmask of [11110000]. NOT the bits to [01001011] then OR the mask to get [11111011]
+        //Finally, NOT again to get [00001011]-- isolating and preserving the first 4 bits while dumping the rest
+        //[Scaled down model, longs are comprised of 64 bits, not 8]
+        return ~(~(word >>> bitOffset) | -1L << range);
+    }
+    //ToDo: TEST "writeRange(args...)" and "isolateRange(args...)" using a new complex BitPackage wand that uses more than 1 bit per obj
+    /**
+     * Returns a boolean identical to the bit at the given index of the word.
+     * @param word the "word" (long) to read from (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to read. Index 0 is the first bit farthest to the right.
+     * @return {@code true} if the bit at the index was 1, {@code false} if the bit was 0
+     */
+    public static boolean readBitAt(final long word, final int bitOffset){
+        //Shift ALL bits over to the right by the offset (including the sign bit, hence ">>>" and not ">>") so the wanted bit is the first bit
+        //Then, mask out all other bits by setting them to zero. If the first bit is one [00...01 = 1] return true
+        //Else it is [00...00 = 0] which is zero, meaning the bit to test was 0.
+        return ((word >>> bitOffset) & 1L) == 1;
+    }
 }

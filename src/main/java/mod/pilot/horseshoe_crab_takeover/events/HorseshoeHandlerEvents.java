@@ -2,8 +2,10 @@ package mod.pilot.horseshoe_crab_takeover.events;
 
 import mod.pilot.horseshoe_crab_takeover.Config;
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
+import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
 import mod.pilot.horseshoe_crab_takeover.items.unique.AStarGridWand;
+import mod.pilot.horseshoe_crab_takeover.items.unique.BitPackageTestWand;
 import mod.pilot.horseshoe_crab_takeover.items.unique.Node3DGridWand;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Basic2DNode;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3D;
@@ -14,6 +16,7 @@ import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
@@ -141,5 +144,42 @@ public class HorseshoeHandlerEvents {
             }
         }
         else inc3d = 0;
+    }
+
+    public static BlockPos.MutableBlockPos mBPosREAD, mBPosWRITE;
+    public static Vector3i lowerLeft;
+    public static boolean read, write;
+    @SubscribeEvent
+    public static void bitPackageTicker(TickEvent.ServerTickEvent event){
+        Level level = event.getServer().overworld();
+
+        if (read){
+            mBPosREAD.move(-5, -5, -5);
+            lowerLeft = DataHelper.ForVector3i.from(mBPosREAD.getCenter());
+            int xC = mBPosREAD.getX(), yC = mBPosREAD.getY(), zC = mBPosREAD.getZ();
+            for (int x = 0; x < 10; x++) {
+                for (int y = 0; y < 10; y++) {
+                    for (int z = 0; z < 10; z++) {
+                        mBPosREAD.set(xC + x, yC + y, zC + z);
+                        BitPackageTestWand.bitPackage.writeObject(x, y, z, level.getBlockState(mBPosREAD));
+                        level.setBlock(mBPosREAD, BitPackageTestWand.AIR, 3);
+                    }
+                }
+            }
+            read = false;
+        }
+        if (write){
+            BlockPos.MutableBlockPos mBPosWRITE = new BlockPos.MutableBlockPos(lowerLeft.x, lowerLeft.y, lowerLeft.z);
+            int xC = mBPosWRITE.getX(), yC = mBPosWRITE.getY(), zC = mBPosWRITE.getZ();
+            for (int x = 0; x < 10; x++) {
+                for (int y = 0; y < 10; y++) {
+                    for (int z = 0; z < 10; z++) {
+                        mBPosWRITE.set(xC + x, yC + y, zC + z);
+                        level.setBlock(mBPosWRITE, BitPackageTestWand.bitPackage.readObject(x, y, z), 3);
+                    }
+                }
+            }
+            write = false;
+        }
     }
 }

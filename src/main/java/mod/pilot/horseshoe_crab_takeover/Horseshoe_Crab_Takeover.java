@@ -33,9 +33,12 @@ public class Horseshoe_Crab_Takeover
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SERVER_SPEC, "HCT_Config.toml");
         Config.loadConfig(Config.SERVER_SPEC, FMLPaths.CONFIGDIR.get().resolve("HCT_Config.toml").toString());
 
-        double x1 = 0, x2 = 0.5, x3 = 1;
-        double x4 = x2, x5 = x3;
-        x4 *= -1; x5 *= -1;
-        System.out.println("Vector and x");
+        long bits = 0;
+        System.out.println("Long 0: " + Long.toBinaryString(bits));
+        bits = bits >>> 16;
+        System.out.println("Long bit right by 16: " + Long.toBinaryString(bits));
+        bits |= 64;
+        System.out.println("Long bit 64: " + Long.toBinaryString(bits));
+        System.out.println("Long shift right 3: " + Long.toBinaryString(bits >>> 3));
     }
 }
