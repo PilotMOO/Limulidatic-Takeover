@@ -166,6 +166,8 @@ public class HorseshoeHandlerEvents {
                     }
                 }
             }
+            System.out.println("BIT PACKAGE: ");
+            System.out.println(BitPackageTestWand.bitPackage);
             read = false;
         }
         if (write){

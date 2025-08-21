@@ -5,8 +5,12 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataHelper {
+    private static final Logger log = LoggerFactory.getLogger(DataHelper.class);
+
     public static class ForVec3 {
         public static Vec3 getDirectionFromAToB(Entity from, Entity to) {
             return directionVec3(from.position(), to.position());
@@ -246,7 +250,7 @@ public class DataHelper {
      * May be fully identical if the original bit was the same as the argument
      */
     public static long bit1AtPosition(final long word, final int bitOffset){
-        //Create a mask by creating a long[00...01], shift by the offset, then "Or" it against the word. return
+        //Create a mask of [00...01], shift by the offset, then "Or" it against the word. return
         return word | (1L << bitOffset);
     }
     /**
@@ -286,6 +290,105 @@ public class DataHelper {
         //Example: starting with bits [11111111], and we want to mask 4 bits that are offset by 1. Result would be [11100001]
         long wordMasked = ~(~word | mask);
         return wordMasked | (ink << bitOffset); //Finally, "Or" in the ink (bits to write)
+        //All of this could be compressed into 1 line but that makes it REALLY hard to read, so... prob wont
+    }
+
+    /**
+     * Writes the bits in the supplied "ink" to the sentence at the supplied index, taking care of overflow when needed
+     * @param sentence the original set of bits to write the ink to. Make SURE that all the bits that will be written
+     *                (defined by both the ink and the inkRange argument) will fit within this array, otherwise an exception will be thrown
+     *                 (see {@code Throws})
+     * @param bitOffset the amount of bits between the first bit index of the first word in the sentence and the location to write the new bits to.
+     *                  The offset is in context to the sentence argument-- if the value is greater than 64 (the bitsize of a long)
+     *                  it will skip the first word within the sentence argument, etc.
+     * @param ink an array of words (longs) with bits to write to the sentence
+     * @param inkRange how many bits from the ink to write to the sentence. Any bits (defined or otherwise) within the ink argument
+     *                 but outside the bounds defined will be ignored
+     * @return a modified version of the sentence long array argument with the new bits written to the supplied index range
+     * @throws InvalidBitWriteOperation if the supplied inkRange argument extends beyond the scope of either of the supplied long arrays
+     * (argument {@code sentence} or {@code ink})
+     */
+    public static long[] mergeBitSentences(final long[] sentence, final int bitOffset, final long[] ink, final int inkRange)
+            throws InvalidBitWriteOperation {
+        //Indexes for both the sentence and the ink-- second index is only needed in the loop but is defined here anyway
+        int sIndex = Math.floorDiv(bitOffset, 64), iIndex = 0;
+        //The bitOffset could be greater than 64 if the first word in the sentence is not the first one we want to write to
+        int localOffset = bitOffset % 64;
+        //First serves as a holder for the inverse of the bitOffset, then keeping track of the amount of bits to write
+        int inkTracker = 64 - localOffset;
+        int bitsToWrite = Math.min(inkTracker, inkRange); //How many bits to write in this invoke
+        //Write the ink's first word with all the bits that could fit in the first sentence word isolated to the start for merging
+        sentence[sIndex] = writeRange(sentence[sIndex], localOffset, isolateRange(sentence[0], 0, bitsToWrite), bitsToWrite);
+        inkTracker = inkRange - inkTracker;
+
+        //Now, write all the bits to the proceeding words until we are done!
+        while (inkTracker > 0){
+            //Merge the rest of the bits of the last word in the ink that was written down with as many of the bits of the next word that can fit
+            long toWrite = writeRange(
+                    //The "old" word (one from the last loop), with all "unused" bits now isolated to the beginning
+                    isolateRange(ink[iIndex], bitsToWrite, 64 - bitsToWrite),
+                    //The offset, how many of the "old" bits in the old word to not rewrite... (all the bits left unused in the prior loop)
+                    bitsToWrite,
+                    //The next word in the ink to grab bits from,
+                    //with all the wanted bits isolated-- totalling the first bit of the word to the last bit that can fit,
+                    //E.G. either the rest of the bits to write or the amount of bits NOT written in the last iteration, whichever is smaller
+                    //(seen in [bitsToWrite = Math.min(inkTracker, 64 - bitsToWrite)])
+                    //bitsToWrite is reassigned to have the amount of bits taken from the "new" word (for use in the next loop iteration)
+                    isolateRange(ink[iIndex + 1], 0,
+                            (bitsToWrite = Math.min(inkTracker, 64 - bitsToWrite))),
+                    //Finally, the amount of bits to write, which has been calculated and assigned in the prior argument.
+                    //This value will be remembered for the next loop
+                    bitsToWrite);
+            //If the supplied ink (or inkRange) includes more information than the sentence can hold...
+            if (++sIndex >= sentence.length || ++iIndex >= ink.length){
+                //...throw an error, that's no good and shouldn't happen :/
+                throw InvalidBitWriteOperation.invalidParagraphWrite(inkRange, bitOffset, sentence.length);
+            }
+            //Write all the bits we want to the next word in the sentence. (local) bitOffset is always 0 for the given word
+            //The "range" is the remainder of inkTracker div 65 (NOT 64 because 64 as a remainder is a perfectly valid value for writing)
+            sentence[sIndex] = writeRange(sentence[sIndex], 0, toWrite, inkTracker % 65);
+            inkTracker -= 64;
+        }
+        return sentence;
+    }
+    /**
+     * Writes the bits in the supplied "ink" to the sentence at the supplied index, taking care of overflow when needed
+     * <p>Simplified version of {@link DataHelper#mergeBitSentences(long[], int, long[], int)} that takes just a long argument for the {@code ink}
+     * argument rather than an array for better performance</p>
+     * @param sentence the original set of bits to write the ink to. Make SURE that all the bits that will be written
+     *                 (defined by both the ink and the inkRange argument) will fit within this array, otherwise an exception will be thrown
+     *                 (see {@code Throws})
+     * @param bitOffset the amount of bits between the first bit index of the first word in the sentence and the location to write the new bits to.
+     *                  The offset is in context to the sentence argument-- if the value is greater than 64 (the bitsize of a long)
+     *                  it will skip the first word within the sentence argument, etc.
+     * @param ink the bits to write to the sentence
+     * @param inkRange how many bits from the ink to write to the sentence. Any bits (defined or otherwise) within the ink argument
+     *                but outside the bounds defined will be ignored
+     * @return a modified version of the sentence long array argument with the new bits written to the supplied index range
+     * @throws InvalidBitWriteOperation if the supplied inkRange argument extends beyond the scope of either the sentence or the ink
+     * (argument {@code sentence} or {@code ink})
+     */
+    public static long[] writeRangeToSentence(final long[] sentence, final int bitOffset, final long ink, final int inkRange)
+            throws InvalidBitWriteOperation {
+        //If the inkRange extends beyond the scope of the supplied ink
+        if (inkRange > 64) throw InvalidBitWriteOperation.rangeOutOfBounds(inkRange, 64);
+
+        int sIndex = Math.floorDiv(bitOffset, 64); //Index for the sentence
+        //The bitOffset could be greater than 64 if the first word in the sentence is not the first one we want to write to
+        int localOffset = bitOffset % 64;
+        //The amount of bits to write
+        //[Math.min(inkRange, 64 - localOffset)] ensures that it writes either ALL the bits if it will fit, or just all bits it can fit
+        int bitsToWrite = Math.min(inkRange, 64 - localOffset);
+        //Writes as many bits as it can from the ink to the first valid word in the sentence
+        //[(ink << localOffset) >>> localOffset] removes all trailing bits that do NOT need to be written to the first word
+        //writeRange(args...) requires the ink argument to have all values to be written pushed to the start and everything else to be defaulted to 0
+        sentence[sIndex] = writeRange(sentence[sIndex], localOffset, (ink << localOffset) >>> localOffset, bitsToWrite);
+        //If there is still more we need to write, write the rest to the next word
+        int leftToWrite = inkRange - bitsToWrite;
+        if (leftToWrite > 0){
+            sentence[++sIndex] = writeRange(sentence[sIndex], 0, isolateRange(ink, bitsToWrite, 64 - bitsToWrite), leftToWrite);
+        }
+        return sentence;
     }
 
     /**
@@ -303,11 +406,32 @@ public class DataHelper {
         //Then use NOT-wise bitmasking to preserve the portion we want while defaulting everything else to 0 (seen in the nested ~(~ )
         //NOT-wise bitmasking works by creating a mask that covers everything wanted with 0's and everything else with 1's
         //Bits: [10110100], we want the first 4, so we make a bitmask of [11110000]. NOT the bits to [01001011] then OR the mask to get [11111011]
-        //Finally, NOT again to get [00001011]-- isolating and preserving the first 4 bits while dumping the rest
+        //Finally, NOT again to get [00000100]-- isolating and preserving the first 4 bits while dumping the rest
         //[Scaled down model, longs are comprised of 64 bits, not 8]
         return ~(~(word >>> bitOffset) | -1L << range);
     }
-    //ToDo: TEST "writeRange(args...)" and "isolateRange(args...)" using a new complex BitPackage wand that uses more than 1 bit per obj
+
+    /**
+     * Attempts to locate and then isolate a list of bits that extends between two words
+     * @param word1 the first word, MUST BE THE WORD DIRECTLY BEFORE THE SECOND ARGUMENT within the sentence that the words are retrieved from.
+     *              Failure to comply will result in junk data
+     * @param word2 the second word, MUST BE THE WORD DIRECTLY AFTER THE FIRST ARGUMENT within the sentence that the words are retrieved from.
+     *              Failure to comply will result in junk data
+     * @param bitOffset the "offset" (index) of the first bit to read. Must be less than 64
+     * @param range how many bits to read. This plus the bitOffset should equal >64,
+     *             otherwise the method will assume the bits are all located within the first argument and just isolate from there
+     * @return a new "word" with all the wanted bits isolated to the start, everything else defaulting to 0
+     */
+    public static long isolateAndMergeAcrossWords(long word1, long word2, int bitOffset, int range){
+        int bitEnd = bitOffset + range; //The bit index of the last bit to locate
+        if (bitEnd < 64) return isolateRange(word1, bitOffset, range); //If the last index is within the first word, just use the normal isolate method
+        else{
+            int bitsInFirst = 64 - bitOffset; //Find how many bits are located in the first word
+            long iso = isolateRange(word1, bitOffset, bitsInFirst); //Isolate the first bits in the first word
+            //Then isolate the ones in the second word and shift them over to accommodate the first set of bits and then "OR" the results to merge
+            return iso | isolateRange(word2, 0, range - bitsInFirst) << bitsInFirst;
+        }
+    }
     /**
      * Returns a boolean identical to the bit at the given index of the word.
      * @param word the "word" (long) to read from (is NOT modified in the process, returns a new variable)
@@ -319,5 +443,25 @@ public class DataHelper {
         //Then, mask out all other bits by setting them to zero. If the first bit is one [00...01 = 1] return true
         //Else it is [00...00 = 0] which is zero, meaning the bit to test was 0.
         return ((word >>> bitOffset) & 1L) == 1;
+    }
+
+    public static class InvalidBitWriteOperation extends Exception{
+        public static InvalidBitWriteOperation invalidParagraphWrite(int inkRange, int bitOffset, int paragraphSize){
+            return new InvalidBitWriteOperation("ERROR! An invalid attempt to write words to a paragraph was preformed! Attempted to write [" +
+                    inkRange +
+                    "] bits offset by [" +
+                    bitOffset +
+                    "] bits to a paragraph of [" +
+                    paragraphSize +
+                    " (" +
+                    paragraphSize * 64 +
+                    " bits!)] words long!");
+        }
+        public static InvalidBitWriteOperation rangeOutOfBounds(int inkRange, int expectedMaxRange){
+            return new InvalidBitWriteOperation("ERROR! An invalid attempt to write words to a paragraph was preformed! The supplied inkRange [" +
+                    inkRange + "] values extended beyond the maximum range of the supplied ink. Max Range: ["
+                    + expectedMaxRange + "]");
+        }
+        public InvalidBitWriteOperation(String msg){super(msg);}
     }
 }

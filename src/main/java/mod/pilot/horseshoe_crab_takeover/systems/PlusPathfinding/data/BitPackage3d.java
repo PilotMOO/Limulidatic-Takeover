@@ -295,4 +295,28 @@ public abstract class BitPackage3d<T> {
      * @return The unpacked object, computed from the supplied bits
      */
     protected abstract T fromBits(int bitOffset, long[] bitMail);
+
+    @Override
+    public String toString() {
+        StringBuilder base = new StringBuilder("BitPackage3d[\n");
+        StringBuilder builder = new StringBuilder();
+        for (long bit : bits){
+            builder.setLength(0);
+            StringBuilder binary = new StringBuilder(Long.toBinaryString(bit));
+            while (binary.length() < 64) binary.insert(0,"0");
+            builder.append(binary);
+            builder.insert(7, " ");
+            builder.insert(15, " ");
+            builder.insert(23, " ");
+            builder.insert(31, " ");
+            builder.insert(39, " ");
+            builder.insert(47, " ");
+            builder.insert(55, " ");
+            builder.insert(63, " ");
+            builder.append(",\n ");
+            base.append(builder);
+        }
+        base.setLength(base.length() - 3);
+        return base.append("]").toString();
+    }
 }

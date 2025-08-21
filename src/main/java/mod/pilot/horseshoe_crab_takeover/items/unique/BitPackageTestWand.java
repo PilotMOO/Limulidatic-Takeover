@@ -13,21 +13,27 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import org.joml.Vector3i;
 
-public class BitPackageTestWand extends Item {
+public class
+BitPackageTestWand extends Item {
     public BitPackageTestWand(Properties pProperties) {
         super(pProperties);
-        bitPackage = new DynamicBitPackage3d<>(1, 10, 10, 10,
+        bitPackage = new DynamicBitPackage3d<>(3, 10, 10, 10,
                 BitPackageTestWand::toBits, BitPackageTestWand::fromBits);
         AIR = Blocks.AIR.defaultBlockState();
-        BLOCK = Blocks.DIAMOND_BLOCK.defaultBlockState();
+        BLOCK = Blocks.SANDSTONE.defaultBlockState();
+        SLAB = Blocks.SANDSTONE_SLAB.defaultBlockState();
     }
 
     public static DynamicBitPackage3d<BlockState> bitPackage;
-    public static Vector3i lowerLeft;
-    public static BlockState AIR, BLOCK;
+    public static BlockState AIR, BLOCK, SLAB;
+    public static BlockState slab(SlabType type){
+        return SLAB.setValue(SlabBlock.TYPE, type);
+    }
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
@@ -49,12 +55,39 @@ public class BitPackageTestWand extends Item {
         return super.use(level, player, hand);
     }
 
-    private static long[] toBits(BlockState obj, int bitOffset, long[] mail){
-        //Since we are only using 1 bit per obj we don't need to worry about writing across multiple "words". Just modify the first one
-        mail[0] = DataHelper.writeBit(mail[0], bitOffset, obj.isAir());
+    private static long[] toBits(BlockState obj, int bitOffset, long[] mail) {
+        long ink = 0L;
+        if (!obj.isAir()) {
+            try {
+                SlabType sType = obj.getValue(SlabBlock.TYPE);
+                ink |= switch (sType) {
+                    case TOP -> 1L;
+                    case BOTTOM -> 2L;
+                    case DOUBLE -> 3L;
+                };
+            } catch (Exception ignored) {}
+            ink = (ink << 1) | 1L;
+        }
+
+        try {
+            DataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
+        } catch (DataHelper.InvalidBitWriteOperation e) {
+            throw new RuntimeException(e);
+        }
+
         return mail;
     }
     private static BlockState fromBits(int bitOffset, long[] mail){
-        return DataHelper.readBitAt(mail[0], bitOffset) ? AIR : BLOCK;
+        long data = DataHelper.isolateAndMergeAcrossWords(mail[0], mail[1], bitOffset, 3);
+        if (data == 0) return AIR;
+        else if (data > 1){
+            data >>>= 1;
+            return slab(switch ((int) data){
+                case 3 -> SlabType.DOUBLE;
+                case 2 -> SlabType.BOTTOM;
+                default -> SlabType.TOP;
+            });
+        }
+        else return BLOCK;
     }
 }
