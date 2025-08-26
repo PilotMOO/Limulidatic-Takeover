@@ -36,32 +36,20 @@ public class Horseshoe_Crab_Takeover
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SERVER_SPEC, "HCT_Config.toml");
         Config.loadConfig(Config.SERVER_SPEC, FMLPaths.CONFIGDIR.get().resolve("HCT_Config.toml").toString());
 
-        Random random = new Random();
+        //Left-over debugging code for testing various bitwise helpers
+        /*Random random = new Random();
 
-        long writeRangeTest = 0L;
-        long g = (-1L << 48) >>> 48;
-        System.out.println("Bits: " + Long.toBinaryString(writeRangeTest));
-        System.out.println("to write: " + Long.toBinaryString(g));
-        System.out.println("written: " + Long.toBinaryString(DataHelper.writeRange(writeRangeTest, 8, g, 16)));
-
-        long bits = random.nextLong() | (1L << 63);
-        System.out.println("BITS: " + Long.toBinaryString(bits));
-        long bits2 = (random.nextLong() | 1L) | (1L << 63);
-        System.out.println("BITS 2: " + Long.toBinaryString(bits2));
-
-        long mark = -1L << 48;
-        System.out.println("marker: " + Long.toBinaryString(mark));
-
-        long[] sentence = new long[2];
-        sentence[0] = bits; sentence[1] = bits2;
-
-        //For some reason writeRangeToSentence(args...) is working entirely inversely to how it should. :/
+        long bits, bits2, bits3, bits4;
+        bits = bits2 = bits3 = bits4 = -1L;
+        long[] pack = new long[4];
+        pack[0] = bits; pack[1] = bits2; pack[2] = bits3; pack[3] = bits4;
+        System.out.println("Bits: [" + Long.toBinaryString(pack[0]) +", "+ Long.toBinaryString(pack[1]) +", "+ Long.toBinaryString(pack[2]) +", "+ Long.toBinaryString(pack[3]) +"]");
+        long[] inks = new long[2];
+        inks[0] = (random.nextLong() | 1L) | 1L << 63; inks[1] = (random.nextLong() | 1L) | 1L << 63;
+        System.out.println("ink: [" + Long.toBinaryString(inks[0]) +", "+ Long.toBinaryString(inks[1]) +"]");
         try {
-            DataHelper.writeRangeToSentence(sentence, 48, mark, 32);
-            System.out.println("mod1: " + Long.toBinaryString(sentence[0]));
-            System.out.println("mod2: " + Long.toBinaryString(sentence[1]));
-        } catch (DataHelper.InvalidBitWriteOperation e) {
-            throw new RuntimeException(e);
-        }
+            DataHelper.mergeBitSentences(pack, 32, inks, 70);
+        } catch (DataHelper.InvalidBitWriteOperation ignored) {}
+        System.out.println("Bits post-write: [" + Long.toBinaryString(pack[0]) +", "+ Long.toBinaryString(pack[1]) +", "+ Long.toBinaryString(pack[2]) +", "+ Long.toBinaryString(pack[3]) +"]");*/
     }
 }

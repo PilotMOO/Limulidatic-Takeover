@@ -128,15 +128,15 @@ public abstract class BitPackage3d<T> {
         return readBits(contextIndex, bitOffset);
     }
     /**
-     * Reads and returns the bits of a given object at the given coordinate index via the {@link BitPackage3d#bitMail}
+     * Reads and returns the bits of a given object at the given contextual index via the {@link BitPackage3d#bitMail}
      * @param index The contextual index of the object to read the bits from
      * @param bitOffset The bit offset of the first bit of the desired object to read the bits of relative to the first bit within the containing "word" (long)
      * @return The bitMail containing all the bits pertaining to a given object at the supplied contextual index
      */
     public long[] readBits(int index, int bitOffset){
-        int withOffset = bitsPerObject + bitOffset;
-        int pages = Math.floorDiv(withOffset, 64);
-        if (withOffset % 64 != 0) pages++;
+        int lastBit = bitsPerObject + bitOffset;
+        int pages = Math.floorDiv(lastBit, 64);
+        if (lastBit - (pages * 64) > 0) pages++;
         System.arraycopy(bits, index, bitMail, 0, pages);
         return bitMail;
     }
@@ -165,9 +165,9 @@ public abstract class BitPackage3d<T> {
      */
     public void writeBits(int x, int y, int z, long[] ink){
         int contextIndex = computeContextualIndex(x, y, z);
-        int withOffset = bitsPerObject + (computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64));
-        int pages = Math.floorDiv(withOffset, 64);
-        if (withOffset % 64 != 0) pages++;
+        int lastBit = bitsPerObject + (computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64));
+        int pages = Math.floorDiv(lastBit, 64);
+        if (lastBit - (pages * 64) > 0) pages++;
         writeBits(contextIndex, ink, pages);
     }
     /**
@@ -176,7 +176,7 @@ public abstract class BitPackage3d<T> {
      * @param ink The long array of bits to "write" in the position of the old bits at the supplied contextual index
      * @param pages The amount of "words" (longs) of the ink to write to the bit array
      */
-    public void writeBits(int contextIndex, long[] ink, int pages){
+    public void writeBits(final int contextIndex, final long[] ink, final int pages){
         System.arraycopy(ink, 0, bits, contextIndex, pages);
     }
 
@@ -242,10 +242,10 @@ public abstract class BitPackage3d<T> {
     public void writeObject(int x, int y, int z, T obj){
         int contextIndex = computeContextualIndex(x, y, z);
         int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
-        int withOffset = bitsPerObject + bitOffset;
-        int pages = Math.floorDiv(withOffset, 64);
-        if (withOffset % 64 != 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset, bitMail), pages);
+        int lastBit = bitsPerObject + bitOffset;
+        int pages = Math.floorDiv(lastBit, 64);
+        if (lastBit - (pages * 64) > 0) pages++;
+        writeBits(contextIndex, toBits(obj, bitOffset, readBits(contextIndex, bitOffset)), pages);
     }
     /**
      * Writes an object into the BitPackage at the supplied contextual index.
@@ -254,9 +254,9 @@ public abstract class BitPackage3d<T> {
      * @param bitOffset The offset of the first desired bit of the object within the "word" (long) relative to the first bit of the word
      */
     public void writeObject(int index, T obj, int bitOffset){
-        int withOffset = bitsPerObject + bitOffset;
-        int pages = Math.floorDiv(withOffset, 64);
-        if (withOffset % 64 != 0) pages++;
+        int lastBit = bitsPerObject + bitOffset;
+        int pages = Math.floorDiv(lastBit, 64);
+        if (lastBit - (pages * 64) > 0) pages++;
         writeBits(index, toBits(obj, bitOffset, bitMail), pages);
     }
 
@@ -270,9 +270,9 @@ public abstract class BitPackage3d<T> {
     public void writeObjectUNSAFE(int x, int y, int z, T obj){
         int contextIndex = computeContextualIndexUNSAFE(x, y, z);
         int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
-        int withOffset = bitsPerObject + bitOffset;
-        int pages = Math.floorDiv(withOffset, 64);
-        if (withOffset % 64 != 0) pages++;
+        int lastBit = bitsPerObject + bitOffset;
+        int pages = Math.floorDiv(lastBit, 64);
+        if (lastBit - (pages * 64) > 0) pages++;
         writeBits(contextIndex, toBits(obj, bitOffset, bitMail), pages);
     }
 

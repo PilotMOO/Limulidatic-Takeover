@@ -2,6 +2,7 @@ package mod.pilot.horseshoe_crab_takeover.items.unique;
 
 import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.events.HorseshoeHandlerEvents;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.DynamicBitPackage3d;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -37,10 +38,13 @@ BitPackageTestWand extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        if (context.isSecondaryUseActive()) {
-            context.getPlayer().displayClientMessage(Component.literal("Encoding all values to bit package..."), true);
-            HorseshoeHandlerEvents.mBPosREAD = context.getClickedPos().mutable();
-            HorseshoeHandlerEvents.read = true;
+        if (!context.getLevel().isClientSide) {
+            if (context.isSecondaryUseActive()) {
+                context.getPlayer().displayClientMessage(Component.literal("Encoding all values to bit package..."), true);
+                HorseshoeHandlerEvents.mBPosREAD = context.getClickedPos().mutable();
+                HorseshoeHandlerEvents.read = true;
+            }
+            context.getPlayer().getCooldowns().addCooldown(this, 5);
         }
 
         return super.useOn(context);
@@ -48,9 +52,12 @@ BitPackageTestWand extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (!player.isSecondaryUseActive()) {
-            player.displayClientMessage(Component.literal("Decoding all values to world..."), true);
-            HorseshoeHandlerEvents.write = true;
+        if (!level.isClientSide) {
+            if (!player.isSecondaryUseActive()) {
+                player.displayClientMessage(Component.literal("Decoding all values to world..."), true);
+                HorseshoeHandlerEvents.write = true;
+            }
+            player.getCooldowns().addCooldown(this, 5);
         }
         return super.use(level, player, hand);
     }
@@ -58,29 +65,30 @@ BitPackageTestWand extends Item {
     private static long[] toBits(BlockState obj, int bitOffset, long[] mail) {
         long ink = 0L;
         if (!obj.isAir()) {
-            try {
+            if (obj.getBlock() instanceof SlabBlock) {
                 SlabType sType = obj.getValue(SlabBlock.TYPE);
                 ink |= switch (sType) {
                     case TOP -> 1L;
                     case BOTTOM -> 2L;
                     case DOUBLE -> 3L;
                 };
-            } catch (Exception ignored) {}
+            }
             ink = (ink << 1) | 1L;
         }
-
         try {
-            DataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
-        } catch (DataHelper.InvalidBitWriteOperation e) {
+            BitwiseDataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
+        } catch (BitwiseDataHelper.InvalidBitWriteOperation e) {
             throw new RuntimeException(e);
         }
 
         return mail;
     }
     private static BlockState fromBits(int bitOffset, long[] mail){
-        long data = DataHelper.isolateAndMergeAcrossWords(mail[0], mail[1], bitOffset, 3);
+        long data = BitwiseDataHelper.isolateAndMergeAcrossWords(mail[0], mail[1], bitOffset, 3);
         if (data == 0) return AIR;
-        else if (data > 1){
+        else if (data == 1) return BLOCK;
+        else{
+            System.err.println("ABNORMAL DATA: " + data + ", " + Long.toBinaryString(data) + " AT BIT INDEX [" + bitOffset + "]");
             data >>>= 1;
             return slab(switch ((int) data){
                 case 3 -> SlabType.DOUBLE;
@@ -88,6 +96,5 @@ BitPackageTestWand extends Item {
                 default -> SlabType.TOP;
             });
         }
-        else return BLOCK;
     }
 }

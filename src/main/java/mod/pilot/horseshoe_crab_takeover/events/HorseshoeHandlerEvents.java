@@ -146,7 +146,7 @@ public class HorseshoeHandlerEvents {
         else inc3d = 0;
     }
 
-    public static BlockPos.MutableBlockPos mBPosREAD, mBPosWRITE;
+    public static BlockPos.MutableBlockPos mBPosREAD;
     public static Vector3i lowerLeft;
     public static boolean read, write;
     @SubscribeEvent
@@ -154,6 +154,8 @@ public class HorseshoeHandlerEvents {
         Level level = event.getServer().overworld();
 
         if (read){
+            boolean flip = false;
+
             mBPosREAD.move(-5, -5, -5);
             lowerLeft = DataHelper.ForVector3i.from(mBPosREAD.getCenter());
             int xC = mBPosREAD.getX(), yC = mBPosREAD.getY(), zC = mBPosREAD.getZ();
@@ -161,6 +163,8 @@ public class HorseshoeHandlerEvents {
                 for (int y = 0; y < 10; y++) {
                     for (int z = 0; z < 10; z++) {
                         mBPosREAD.set(xC + x, yC + y, zC + z);
+
+                        //BitPackageTestWand.bitPackage.writeObject(x, y, z, (flip = !flip) ? Blocks.AIR.defaultBlockState() : Blocks.IRON_BLOCK.defaultBlockState());
                         BitPackageTestWand.bitPackage.writeObject(x, y, z, level.getBlockState(mBPosREAD));
                         level.setBlock(mBPosREAD, BitPackageTestWand.AIR, 3);
                     }
