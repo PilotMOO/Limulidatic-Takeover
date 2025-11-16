@@ -1,8 +1,41 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
-import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 
 public class BitwiseDataHelper {
+    public static String parseByteToBinary(byte value){return parseByteToBinary(value, true);}
+    public static String parseByteToBinary(byte value, boolean space8){
+        String parse = Long.toBinaryString(Byte.toUnsignedLong(value));
+        int length = parse.length();
+        StringBuilder builder = new StringBuilder();
+        while (length++ < 8) {
+            builder.append("0");
+            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
+        }
+        return builder.append(parse).toString();
+    }
+    public static String parseIntToBinary(int value){return parseIntToBinary(value, true);}
+    public static String parseIntToBinary(int value, boolean space8){
+        String parse = Long.toBinaryString(Integer.toUnsignedLong(value));
+        int length = parse.length();
+        StringBuilder builder = new StringBuilder();
+        while (length++ < 32) {
+            builder.append("0");
+            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
+        }
+        return builder.append(parse).toString();
+    }
+    public static String parseLongToBinary(long value){return parseLongToBinary(value, true);}
+    public static String parseLongToBinary(long value, boolean space8){
+        String parse = Long.toBinaryString(value);
+        int length = parse.length();
+        StringBuilder builder = new StringBuilder();
+        while (length++ < 64) {
+            builder.append("0");
+            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
+        }
+        return builder.append(parse).toString();
+    }
+
     /**
      * Sets the bit of a "word" (long) at the given offset to whatever the bit argument is
      * <p>This method is a bit needlessly performance-hungry for how little it does. Sucks, but it also isn't... THAT unoptimized...</p>
