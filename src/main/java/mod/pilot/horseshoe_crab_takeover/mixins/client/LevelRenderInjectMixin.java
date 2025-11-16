@@ -19,11 +19,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LevelRenderInjectMixin {
     @Shadow @Final private RenderBuffers renderBuffers;
 
-    //this is buggy af and not worth it :/
-    /*@Inject(method = "renderLevel", at = @At(value = "RETURN" *//*"INVOKE_ASSIGN", target = "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;getBuffer(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"*//*))
+    /*@Inject(method = "renderLevel", at = @At(value = *//*"RETURN"*//* "INVOKE_ASSIGN", target = "Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;getBuffer(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"))
     public void debuggerHook(PoseStack pPoseStack, float pPartialTick, long pFinishNanoTime, boolean pRenderBlockOutline,
                              Camera pCamera, GameRenderer pGameRenderer, LightTexture pLightTexture, Matrix4f pProjectionMatrix, CallbackInfo ci){
         RenderDebuggerQue.renderAll(renderBuffers.bufferSource(), pPoseStack, pPartialTick, pFinishNanoTime, pRenderBlockOutline,
                 pCamera, pGameRenderer, pLightTexture, pProjectionMatrix);
     }*/
+
+    @Inject(method = "renderLevel", at = @At(value = "HEAD"))
+    public void debuggerHook(PoseStack pPoseStack, float pPartialTick, long pFinishNanoTime, boolean pRenderBlockOutline,
+                             Camera pCamera, GameRenderer pGameRenderer, LightTexture pLightTexture, Matrix4f pProjectionMatrix, CallbackInfo ci){
+        RenderDebuggerQue.renderAll(renderBuffers.bufferSource(), pPoseStack, pPartialTick, pFinishNanoTime, pRenderBlockOutline,
+                pCamera, pGameRenderer, pLightTexture, pProjectionMatrix);
+    }
 }

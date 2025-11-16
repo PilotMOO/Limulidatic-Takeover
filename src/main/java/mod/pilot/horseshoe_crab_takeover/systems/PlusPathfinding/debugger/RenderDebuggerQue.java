@@ -23,10 +23,12 @@ public class RenderDebuggerQue {
 
     public static void queRender(IRenderInstructions render){
         add.add(render);
+        remove.remove(render);
         flagAdd = true;
     }
     public static void removeRender(IRenderInstructions render){
         remove.add(render);
+        add.remove(render);
         flagRemove = true;
     }
 

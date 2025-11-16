@@ -1,5 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover.data;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -190,6 +191,7 @@ public class DataHelper {
         public static Vector3i from(Vec3 vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
         public static Vector3i from(Vector3d vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
         public static Vector3i from(Vector3f vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
+        public static Vector3i from(BlockPos bPos){ return new Vector3i(bPos.getX(), bPos.getY(), bPos.getZ()); }
 
         public static void copy(Vector3i paper, Vec3 ink){
             paper.x = floor(ink.x); paper.y = floor(ink.y); paper.z = floor(ink.z);
