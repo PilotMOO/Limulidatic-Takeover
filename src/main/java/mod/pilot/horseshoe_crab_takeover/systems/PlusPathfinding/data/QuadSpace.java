@@ -44,11 +44,21 @@ public record QuadSpace(Vector3i minor, int sizeX, int sizeY, int sizeZ) {
      * @param point The coordinate to check
      * @return {@code true} if the coordinate falls within the quad
      */
-    public boolean contains(Vector3i point){
+    public boolean contains(Vector3i point){return contains(point.x, point.y, point.z);}
+    public boolean contains(int x, int y, int z){
         if (invalid()) return false;
         Vector3i major = getMajor();
-        return point.x >= minor.x && point.x <= major.x
-                && point.y >= minor.y && point.y <= major.y
-                && point.z >= minor.z && point.z <= major.z;
+        return x >= minor.x && x <= major.x
+                && y >= minor.y && y <= major.y
+                && z >= minor.z && z <= major.z;
+    }
+
+    public boolean containsLargePoint(int x, int y, int z, double pointSize){
+        if (invalid()) return false;
+        double pointHalf = pointSize / 2;
+        Vector3i major = getMajor();
+        return x >= minor.x - pointHalf && x <= major.x + pointHalf
+                && y >= minor.y - pointHalf && y <= major.y + pointHalf
+                && z >= minor.z - pointHalf && z <= major.z + pointHalf;
     }
 }

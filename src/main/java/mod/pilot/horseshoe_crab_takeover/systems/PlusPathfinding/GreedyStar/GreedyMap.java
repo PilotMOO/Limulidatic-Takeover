@@ -11,9 +11,14 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 public class GreedyMap<G extends GreedyNode> {
+    public static int DEFAULT_MapExtensionRange = 4;
+    public int MapExtensionRange;
+
     public GreedyMap(MapContext.Container nodes, byte mapID){
         this.nodes = nodes;
         this.mapID = mapID;
+        MapExtensionRange = DEFAULT_MapExtensionRange;
+        computeBound();
     }
 
     public final byte mapID;
@@ -83,6 +88,15 @@ public class GreedyMap<G extends GreedyNode> {
     }
     public MapContext wrap(G node){
         return new MapContext(node);
+    }
+
+    public static GreedyMap<?> retrieveFromGlobalID(long globalID){
+        //Only check RAM and File cache, we don't want to make a new chunk if there isn't one
+        GreedyChunk gChunk = GreedyWorld.retrieveOnly(globalID);
+        if (gChunk == null) return null; //Womp, no GChunks exist for that ID
+        byte mapID = GreedyWorld.isolateMapID(globalID); //Getting the GMap from the I.D....
+        return gChunk.getMap(mapID);
+        //Return regardless of if it exists, the method is @Nullable
     }
 
     public final class MapContext {
@@ -309,7 +323,14 @@ public class GreedyMap<G extends GreedyNode> {
         }
     }
 
-
+    /**
+     * DEPRECATED!!
+     * Was the first generation of what turned into {@link MapContext}
+     * I didn't know what I was doing when making it so it was useless
+     * and was just recycled.
+     * <p></p>
+     * But I didnt want to delete it so it's left here as an artifact of the past
+     */
     @SuppressWarnings("unchecked")
     @Deprecated //It's cool, but not useful here...
     private final class NodeRelativeMap {

@@ -40,16 +40,69 @@ public class GreedyChunk {
         }
         maps = newMaps;
     }
-    public @Nullable GreedyMap<?> fromID(byte mapID){
+    public @Nullable GreedyMap<?> getMap(byte mapID){
         for (GreedyMap<?> map : maps){
             if (map.mapID == mapID) return map;
         }
         return null;
     }
 
+    public enum SearchType{
+        InBounds,
+        MapExtension,
+        MapExtensionDefault,
+        AnyClosest
+    }
+    /**
+     * Looks for the closest GreedyMap within this GChunk that matches the given [XYZ] coordinates
+     * Behaviour changes based off of the 4th argument:
+     * <p>{@code InBounds}: The target GreedyMap's {@link GreedyMap#MapBound}
+     * MUST contain the supplied coordinate. Strictest argument type.</p>
+     * {@code MapExtension}: Same as {@code InBounds} but it adds the Map's
+     * {@link GreedyMap#MapExtensionRange} to the bounds.
+     * <p>{@code MapExtensionDefault} Same as prior, but ignores the personalized map extension and assumes the default value [{@link GreedyMap#DEFAULT_MapExtensionRange}]</p>
+     * {@code AnyClosest} Returns the closest GreedyMap within the GChunk regardless of its distance to the point. Will still return {@code null} if the GChunk is empty
+     * ---I suck at coding so this doesn't do shit rn blehhhh :MiddleFinger:
+     * @param x the X coordinate of the reference area
+     * @param y the Y coordinate of the reference area
+     * @param z the Z coordinate of the reference area
+     * @param searchType Affects the behaviour of the search function.
+     *                  See main description for explanation
+     * @return Might return a GreedyChunk relative to the supplied coordinates
+     */
+    public @Nullable GreedyMap<?> locateClosest(final int x, final int y, final int z,
+                                                SearchType searchType){
+        return switch(searchType){
+            case InBounds -> {
+                for (GreedyMap<?> gMap : maps) if (gMap.MapBound.contains(x,y,z)) yield gMap;
+                yield null;
+            }
+            case MapExtension -> {
+                for (GreedyMap<?> gMap : maps) {
+                    if (gMap.MapBound.containsLargePoint(x,y,z, gMap.MapExtensionRange * 2)){
+                        yield gMap;
+                    }
+                }
+                yield null;
+            }
+            case MapExtensionDefault -> {
+                for (GreedyMap<?> gMap : maps) {
+                    if (gMap.MapBound.containsLargePoint(x,y,z, GreedyMap.DEFAULT_MapExtensionRange * 2)){
+                        yield gMap;
+                    }
+                }
+                yield null;
+            }
+            //idk how to figure out the distance from a point to the nearest
+            // part of a rectangular prism so this'll just be... left as this until I get gud
+            case AnyClosest -> null;
+            default -> null;
+        };
+    }
+
     public long computeGlobalID(int mapLevelID){
         if (mapLevelID >= 65536){
-            System.err.printf("[GREEDY CHUNK] WARNING! Invalid mapLevelID[%s] located in computeGlobalID() call! Ensure only the first 16 bits (excluding first 3) are populated! Returning defaulted ID [-1]...", BitwiseDataHelper.parseIntToBinary(mapLevelID));
+            System.err.printf("[GREEDY CHUNK] WARNING! Invalid mapLevelID[%s] located in computeGlobalID() call! Ensure only the first 16 bits (excluding first 3) are populated! Returning defaulted ID [-1]...%n", BitwiseDataHelper.parseIntToBinary(mapLevelID));
             return -1;
         }
         else return chunkID | mapLevelID;
