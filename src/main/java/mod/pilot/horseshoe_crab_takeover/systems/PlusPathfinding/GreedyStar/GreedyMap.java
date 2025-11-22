@@ -7,10 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 
-import java.util.Arrays;
 import java.util.Iterator;
 
-public class GreedyMap<G extends GreedyNode> {
+public class GreedyMap {
     public static int DEFAULT_MapExtensionRange = 4;
     public int MapExtensionRange;
 
@@ -38,12 +37,12 @@ public class GreedyMap<G extends GreedyNode> {
         if (nodeCount == 0) MapBound = QuadSpace.INVALID; //If we don't have any nodes, the bounds are invalid
         else if (nodeCount == 1){
             //If we only have 1 node, create a QuadSpace bound with the same dimensions as the node
-            GreedyNode node = nodes.getNode(0);
+            mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node = nodes.getNode(0);
             MapBound = new QuadSpace(node.cornerMinor, node.x, node.y, node.z);
         }
         else if (nodeCount == 2) {
             //If we have two nodes, find the extremes
-            GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
+            mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
             Vector3i minor1 = node1.cornerMinor, minor2 = node2.cornerMinor;
             Vector3i minor = new Vector3i(Math.min(minor1.x, minor2.x),
                     Math.min(minor1.y, minor2.y),
@@ -56,7 +55,7 @@ public class GreedyMap<G extends GreedyNode> {
             int xCorner, yCorner, zCorner, xMajor, yMajor, zMajor;
             xCorner = yCorner = zCorner = Integer.MAX_VALUE;
             xMajor = yMajor = zMajor = Integer.MIN_VALUE;
-            for (GreedyNode node : nodes){
+            for (mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node : nodes){
                 Vector3i minor = node.cornerMinor;
                 xCorner = Math.min(xCorner, minor.x); /**/
                 yCorner = Math.min(yCorner, minor.y); /**/
@@ -80,17 +79,17 @@ public class GreedyMap<G extends GreedyNode> {
         }
         return null;
     }
-    public @Nullable G nodeFromID(byte nodeID){
-        for (G node : nodes){
+    public @Nullable GreedyNode nodeFromID(byte nodeID){
+        for (GreedyNode node : nodes){
             if (node.nodeID == nodeID) return node;
         }
         return null;
     }
-    public MapContext wrap(G node){
+    public MapContext wrap(GreedyNode node){
         return new MapContext(node);
     }
 
-    public static GreedyMap<?> retrieveFromGlobalID(long globalID){
+    public static GreedyMap retrieveFromGlobalID(long globalID){
         //Only check RAM and File cache, we don't want to make a new chunk if there isn't one
         GreedyChunk gChunk = GreedyWorld.retrieveOnly(globalID);
         if (gChunk == null) return null; //Womp, no GChunks exist for that ID
@@ -99,21 +98,21 @@ public class GreedyMap<G extends GreedyNode> {
         //Return regardless of if it exists, the method is @Nullable
     }
 
-    public final class MapContext {
-        public G node;
+    public static final class MapContext {
+        public GreedyNode node;
         public byte[] relativeIDs;
         public int size;
 
-        public MapContext(G node, byte[] relativeIDs){
+        public MapContext(GreedyNode node, byte[] relativeIDs){
             this.node = node;
             this.relativeIDs = relativeIDs;
             size = relativeIDs.length;
         }
-        public MapContext(G node, int initCapacity){
+        public MapContext(GreedyNode node, int initCapacity){
             this.node = node;
             this.relativeIDs = new byte[size = initCapacity];
         }
-        public MapContext(G node){
+        public MapContext(GreedyNode node){
             this(node, 0);
         }
 
@@ -227,15 +226,14 @@ public class GreedyMap<G extends GreedyNode> {
             return (byte)(id & ~ID_MASK);
         }
 
-        @SuppressWarnings("unchecked")
-        public class Container implements Iterable<G>{
-            protected Object[] contexts;
+        public static class Container implements Iterable<GreedyNode>{
+            protected MapContext[] contexts;
             public int size;
 
             public MapContext get(int index){
-                return (MapContext) contexts[index];
+                return contexts[index];
             }
-            public G getNode(int index){
+            public GreedyNode getNode(int index){
                 return get(index).node;
             }
 
@@ -243,17 +241,11 @@ public class GreedyMap<G extends GreedyNode> {
                 growArray(1);
                 contexts[size - 1] = node;
             }
-            public void addContexts(Object... toAdd){
+            public void addContexts(MapContext... toAdd){
                 int count = toAdd.length;
                 int index = size;
                 growArray(count);
-                if (Arrays.stream(toAdd).allMatch(
-                        (obj) -> obj.getClass().equals(MapContext.class))) {
-                    System.arraycopy(toAdd, 0, contexts, index, count);
-                } else {
-                    System.err.println("[MAP CONTEXT] WARNING! Attempted to add a list of MapContexts to a container but at least one of the supplied objects were NOT of the MapContext class! Ensure ALL objects being added are MapContexts. Discarding addition attempt...");
-                    System.err.printf("[MAP CONTEXT-- INFO] Objects to add[%s]%n", toAdd);
-                }
+                System.arraycopy(toAdd, 0, contexts, index, count);
             }
             public void insertElement(MapContext element, int index){
                 if (index >= size){
@@ -268,15 +260,15 @@ public class GreedyMap<G extends GreedyNode> {
 
             private void growArray(int amount){
                 int newSize = size + amount;
-                Object[] newContexts = new Object[newSize];
+                MapContext[] newContexts = new MapContext[newSize];
                 System.arraycopy(contexts, 0, newContexts, 0, size);
                 this.contexts = newContexts;
-                size = newSize;
+                this.size = newSize;
             }
 
             private final NodeIterator nIterator = new NodeIterator();
             @Override
-            public @NotNull Iterator<G> iterator() {
+            public @NotNull Iterator<GreedyNode> iterator() {
                 return nIterator.reset();
             }
             private final ContextIterator cIterator = new ContextIterator();
@@ -284,7 +276,7 @@ public class GreedyMap<G extends GreedyNode> {
                 return cIterator.reset();
             }
 
-            private class NodeIterator implements Iterator<G>{
+            private class NodeIterator implements Iterator<GreedyNode>{
                 public NodeIterator(){reset();}
                 public NodeIterator reset(){
                     wrapper = contexts;
@@ -292,14 +284,13 @@ public class GreedyMap<G extends GreedyNode> {
                     index = 0;
                     return this;
                 }
-                public Object[] wrapper;
+                public MapContext[] wrapper;
                 private int count;
                 private int index;
 
                 @Override public boolean hasNext() {return index + 1 < count;}
-                @SuppressWarnings("unchecked")
-                @Override public G next() {
-                    return ((MapContext)wrapper[++index]).node;
+                @Override public GreedyNode next() {
+                    return wrapper[++index].node;
                 }
             }
             private class ContextIterator implements Iterator<MapContext>{
@@ -310,14 +301,13 @@ public class GreedyMap<G extends GreedyNode> {
                     index = 0;
                     return this;
                 }
-                public Object[] elements;
+                public MapContext[] elements;
                 private int count;
                 private int index;
 
                 @Override public boolean hasNext() {return index + 1 < count;}
-                @SuppressWarnings("unchecked")
                 @Override public MapContext next() {
-                    return (MapContext) elements[++index];
+                    return elements[++index];
                 }
             }
         }
@@ -334,7 +324,7 @@ public class GreedyMap<G extends GreedyNode> {
     @SuppressWarnings("unchecked")
     @Deprecated //It's cool, but not useful here...
     private final class NodeRelativeMap {
-        public NodeRelativeMap(G node, G[] elements, Byte[] IDs){
+        public NodeRelativeMap(GreedyNode node, GreedyNode[] elements, Byte[] IDs){
             this.relative = node;
             int elementCount = elements.length, idCount = IDs.length;
             if (elementCount != idCount){
@@ -353,18 +343,18 @@ public class GreedyMap<G extends GreedyNode> {
                         size = idCount);
             }
         }
-        public NodeRelativeMap(G node, int initCapacity){
+        public NodeRelativeMap(GreedyNode node, int initCapacity){
             relative = node;
-            elements = (G[])new GreedyNode[initCapacity];
+            elements = (GreedyNode[])new mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode[initCapacity];
             IDs = new byte[initCapacity];
             size = initCapacity;
         }
-        public G relative;
-        public G[] elements;
+        public GreedyNode relative;
+        public GreedyNode[] elements;
         public byte[] IDs;
         public int size;
 
-        public void addElementByDirection(G element, Direction direction){
+        public void addElementByDirection(GreedyNode element, Direction direction){
             byte id = computeElementID(direction);
             if (id == -1){
                 System.err.printf("[NODE FAMILY TREE] WARNING! Attempted to add an element but the computed ID came back as invalid! Likely, the amount of elements for the given direction exceeded the max [%h]. Discarding addition...%n", 63);
@@ -374,7 +364,7 @@ public class GreedyMap<G extends GreedyNode> {
             insertElement(element, id, iterateUntilValidIndex(direction));
         }
 
-        private void insertElement(G element, byte id, int index){
+        private void insertElement(GreedyNode element, byte id, int index){
             if (index >= size){
                 growArrays(size - index);
                 elements[index] = element;
@@ -382,7 +372,7 @@ public class GreedyMap<G extends GreedyNode> {
             }
             else if (index == 0){
                 int newSize = size + 1;
-                G[] newElements = (G[])new GreedyNode[newSize];
+                GreedyNode[] newElements = (GreedyNode[])new mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode[newSize];
                 byte[] newIDs = new byte[newSize];
                 System.arraycopy(elements, 0, newElements, 1, size);
                 System.arraycopy(IDs, 0, newIDs, 1, size);
@@ -401,9 +391,9 @@ public class GreedyMap<G extends GreedyNode> {
             }
         }
 
-        public G[] getAllElementsOfDirection(Direction direction){
+        public GreedyNode[] getAllElementsOfDirection(Direction direction){
             byte id_pre = idPrependByDirection(direction);
-            G[] toReturn = (G[])new GreedyNode[size];
+            GreedyNode[] toReturn = (GreedyNode[])new mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode[size];
             int count = 0;
             for (int i = 0; i < size; i++){
                 byte cDirectionID = isolateDirection(IDs[i]);
@@ -459,7 +449,7 @@ public class GreedyMap<G extends GreedyNode> {
 
         private void growArrays(int additional){
             int newSize = size + additional;
-            G[] newElements = (G[])new GreedyNode[newSize];
+            GreedyNode[] newElements = (GreedyNode[])new mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode[newSize];
             byte[] newIDs = new byte[newSize];
             System.arraycopy(elements, 0, newElements, 0, size);
             System.arraycopy(IDs, 0, newIDs, 0, size);
@@ -500,7 +490,7 @@ public class GreedyMap<G extends GreedyNode> {
         //Unused but I already made it so I don't want to remove it :/
         public void setToSize(int newSize){
             if (newSize < size){
-                G[] newElements = (G[])new GreedyNode[newSize];
+                GreedyNode[] newElements = (GreedyNode[])new mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode[newSize];
                 byte[] newIDs = new byte[newSize];
                 System.arraycopy(elements, 0, newElements, 0, newSize);
                 System.arraycopy(IDs, 0, newIDs, 0, newSize);

@@ -6,7 +6,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joml.Vector2i;
 import org.joml.Vector3i;
 
-
 public class GreedyChunk {
     public GreedyChunk(long chunkID){
         this.chunkID = chunkID;
@@ -17,17 +16,17 @@ public class GreedyChunk {
     public final Vector2i relative;
     public final long chunkID;
 
-    public GreedyMap<?>[] maps;
-    public void addMap(GreedyMap<?> map){
+    public GreedyMap[] maps;
+    public void addMap(GreedyMap map){
         int newSize = maps.length + 1;
-        GreedyMap<?>[] newMaps = new GreedyMap<?>[newSize];
+        GreedyMap[] newMaps = new GreedyMap[newSize];
         System.arraycopy(maps, 0, newMaps, 0, newSize);
         newMaps[newSize - 1] = map;
         maps = newMaps;
     }
     public void removeMap(int index){
         int newSize = maps.length - 1;
-        GreedyMap<?>[] newMaps = new GreedyMap<?>[newSize];
+        GreedyMap[] newMaps = new GreedyMap[newSize];
         if (index == 0){
             System.arraycopy(maps, 1, newMaps, 0, newSize);
         }
@@ -40,8 +39,8 @@ public class GreedyChunk {
         }
         maps = newMaps;
     }
-    public @Nullable GreedyMap<?> getMap(byte mapID){
-        for (GreedyMap<?> map : maps){
+    public @Nullable GreedyMap getMap(byte mapID){
+        for (GreedyMap map : maps){
             if (map.mapID == mapID) return map;
         }
         return null;
@@ -70,15 +69,15 @@ public class GreedyChunk {
      *                  See main description for explanation
      * @return Might return a GreedyChunk relative to the supplied coordinates
      */
-    public @Nullable GreedyMap<?> locateClosest(final int x, final int y, final int z,
+    public @Nullable GreedyMap locateClosest(final int x, final int y, final int z,
                                                 SearchType searchType){
         return switch(searchType){
             case InBounds -> {
-                for (GreedyMap<?> gMap : maps) if (gMap.MapBound.contains(x,y,z)) yield gMap;
+                for (GreedyMap gMap : maps) if (gMap.MapBound.contains(x,y,z)) yield gMap;
                 yield null;
             }
             case MapExtension -> {
-                for (GreedyMap<?> gMap : maps) {
+                for (GreedyMap gMap : maps) {
                     if (gMap.MapBound.containsLargePoint(x,y,z, gMap.MapExtensionRange * 2)){
                         yield gMap;
                     }
@@ -86,7 +85,7 @@ public class GreedyChunk {
                 yield null;
             }
             case MapExtensionDefault -> {
-                for (GreedyMap<?> gMap : maps) {
+                for (GreedyMap gMap : maps) {
                     if (gMap.MapBound.containsLargePoint(x,y,z, GreedyMap.DEFAULT_MapExtensionRange * 2)){
                         yield gMap;
                     }

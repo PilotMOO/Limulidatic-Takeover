@@ -98,7 +98,7 @@ public class GreedyNode {
         GreedyChunk gChunk = GreedyWorld.retrieveOnly(globalID);
         if (gChunk == null) return null; //Womp, no GChunks exist for that ID
         byte mapID = GreedyWorld.isolateMapID(globalID); //Getting the GMap from the I.D....
-        GreedyMap<?> gMap = gChunk.getMap(mapID); /**/
+        GreedyMap gMap = gChunk.getMap(mapID); /**/
         if (gMap == null) return null; //Womp, no GMap exists for that ID within that GChunk
         byte nodeID = GreedyWorld.isolateNodeID(globalID); //Getting the desired GNode...
         return gMap.nodeFromID(nodeID);
