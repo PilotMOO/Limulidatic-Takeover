@@ -12,15 +12,10 @@ import java.util.Iterator;
  * (the corner with the lowest X, Y, and Z coordinate values)
  * with 3 respective sizes for the X, Y, and Z coordinates. Each size coordinate expands
  * the quad from the minor coordinate towards the positive of their value
- * @param minor The "minor" coordinate of the quad, the corner of the quad with the lowest
- *              XYZ value
- * @param sizeX The size of the quad along the X axis
- * @param sizeY The size of the quad along the Y axis
- * @param sizeZ The size of the quad along the Z axis
  */
 public class QuadSpace{
-    public Vector3i minor;
-    public int sizeX, sizeY, sizeZ;
+    public static QuadSpace INVALID = new QuadSpace(new Vector3i(), -1, -1, -1);
+
     public QuadSpace(Vector3i minor, int sizeX, int sizeY, int sizeZ){
         this.minor = minor;
         this.sizeX = sizeX; this.sizeZ = sizeZ; this.sizeY = sizeY;
@@ -28,6 +23,11 @@ public class QuadSpace{
     public QuadSpace(Vector3i minor){
         this(minor, 0, 0, 0);
     }
+
+    /**The "minor" coordinate of the quad, the corner of the quad with the lowest X, Y, and Z values*/
+    public Vector3i minor;
+    /**The size of the quad along the X|Y|Z axis*/
+    public int sizeX, sizeY, sizeZ;
 
     public void extend(int x, int y, int z){
         sizeX += x;
@@ -39,7 +39,6 @@ public class QuadSpace{
     public void stepZ(){sizeZ++;}
     public void shiftMinor(int x, int y, int z){minor.add(x, y, z);}
 
-    public static QuadSpace INVALID = new QuadSpace(new Vector3i(), -1, -1, -1);
     public boolean invalid(){return this.equals(INVALID);}
     /**
      * Returns a "major" coordinate along any of the 3 axis (interchangeable)
@@ -48,7 +47,7 @@ public class QuadSpace{
      * @param z Whether the returned coordinate is a major along the Z axis
      * @return A "major" coordinate with the selected axis
      */
-    public Vector3i getMajor(boolean x, boolean y, boolean z){
+    public Vector3i major(boolean x, boolean y, boolean z){
         return new Vector3i(
                 minor.x + (x?sizeX:0),
                 minor.y + (y?sizeY:0),
@@ -60,7 +59,7 @@ public class QuadSpace{
      * with the largest XYZ coordinate value.
      * @return The true major of the quad
      */
-    public Vector3i getMajor(){
+    public Vector3i major(){
         return new Vector3i(minor.x + sizeX, minor.y + sizeY, minor.z + sizeZ);
     }
 
@@ -70,18 +69,23 @@ public class QuadSpace{
      * @return {@code true} if the coordinate falls within the quad
      */
     public boolean contains(Vector3i point){return contains(point.x, point.y, point.z);}
+    public boolean contains(BlockPos point){return contains(point.getX(), point.getY(), point.getZ());}
     public boolean contains(int x, int y, int z){
         if (invalid()) return false;
-        Vector3i major = getMajor();
+        Vector3i major = major();
         return x >= minor.x && x <= major.x
                 && y >= minor.y && y <= major.y
                 && z >= minor.z && z <= major.z;
+    }
+    public boolean contains(QuadSpace qSpace){
+        if(this.invalid() || qSpace.invalid()) return false;
+        return this.contains(qSpace.minor) && this.contains(qSpace.major());
     }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){
         if (invalid()) return false;
         double pointHalf = pointSize / 2;
-        Vector3i major = getMajor();
+        Vector3i major = major();
         return x >= minor.x - pointHalf && x <= major.x + pointHalf
                 && y >= minor.y - pointHalf && y <= major.y + pointHalf
                 && z >= minor.z - pointHalf && z <= major.z + pointHalf;
@@ -120,12 +124,12 @@ public class QuadSpace{
      */
     private abstract class VectorSpaceIterator<I> implements Iterable<I>{
         protected abstract I getNext();
-        public int positionX, positionY, positionZ;
+        public int positionX = 0, positionY = 0, positionZ = 0;
 
         public I step(){
-            boolean xThreshold = positionX <= sizeX,
-                    yThreshold = positionY <= sizeY,
-                    zThreshold = positionZ <= sizeZ;
+            boolean xThreshold = positionX < sizeX,
+                    yThreshold = positionY < sizeY,
+                    zThreshold = positionZ < sizeZ;
 
             if (xThreshold || yThreshold || zThreshold){
                 if (!zThreshold) positionZ++;
@@ -209,5 +213,15 @@ public class QuadSpace{
             }
             return null;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "QuadSpace[" +
+                "minor=" + minor +
+                ", sizeX=" + sizeX +
+                ", sizeY=" + sizeY +
+                ", sizeZ=" + sizeZ +
+                ']';
     }
 }

@@ -26,6 +26,31 @@ public class GreedyMap {
             return (mapID << 8) | nodeID;
         } else return -1;
     }
+    public byte newNodeID(){
+        byte[] existingIDs = new byte[nodes.size];
+        //Grab all existing Node IDs and push the ID to the edge for easier comparison
+        for (int i = 0; i < nodes.size; i++) existingIDs[i] = (byte)(nodes.getNode(i).nodeID >>> 3);
+
+        byte id = 0; //Node ID 0 is not valid, this will be inc'd before being used
+        while(true){
+            id++; //Inc the ID
+            boolean flag = false; //if the ID is already used
+            for (byte b : existingIDs){
+                if (b == id) { //Check all ID's, if any match, set the flag, break, and continue.
+                    flag = true; break;
+                }
+            }
+            if (flag) continue; //If the ID is already in use, try the next inc
+            return (byte)(id << 3); //Otherwise, this is our next ID!
+            //Make sure to shift the ID over 3 bits
+
+            //We can't just return the next ID based off of the size of the Container
+            // because if nodes are removed it won't be 1:1
+            // E.G. (if node ID [00101;000] is removed, its ID is valid for another node,
+            // but if there's more than 5 nodes in the container, the computed ID would assume
+            // [00101;000] is already taken, and the computed value might overlap with another node
+        }
+    }
 
     public QuadSpace MapBound;
     /**
@@ -38,12 +63,12 @@ public class GreedyMap {
         else if (nodeCount == 1){
             //If we only have 1 node, create a QuadSpace bound with the same dimensions as the node
             mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node = nodes.getNode(0);
-            MapBound = new QuadSpace(node.cornerMinor, node.x, node.y, node.z);
+            MapBound = new QuadSpace(node.minor, node.x, node.y, node.z);
         }
         else if (nodeCount == 2) {
             //If we have two nodes, find the extremes
             mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
-            Vector3i minor1 = node1.cornerMinor, minor2 = node2.cornerMinor;
+            Vector3i minor1 = node1.minor, minor2 = node2.minor;
             Vector3i minor = new Vector3i(Math.min(minor1.x, minor2.x),
                     Math.min(minor1.y, minor2.y),
                     Math.min(minor1.z, minor2.z));
@@ -56,7 +81,7 @@ public class GreedyMap {
             xCorner = yCorner = zCorner = Integer.MAX_VALUE;
             xMajor = yMajor = zMajor = Integer.MIN_VALUE;
             for (mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node : nodes){
-                Vector3i minor = node.cornerMinor;
+                Vector3i minor = node.minor;
                 xCorner = Math.min(xCorner, minor.x); /**/
                 yCorner = Math.min(yCorner, minor.y); /**/
                 zCorner = Math.min(zCorner, minor.z); //Find the smallest minor
