@@ -74,15 +74,15 @@ public class GreedyNodeBuilder {
                         }
                         if (alreadyChecked) continue;
 
-                        boolean nodeFlag = evaluator.evaluate(level, chunk, mBPos,
+                        boolean nodeFlag = evaluator.evaluateSoloInstance(level, chunk, mBPos,
                                 chunkSlice.getBlockState(mBPos.getX() % 16,
                                         mBPos.getY() % 16,
                                         mBPos.getZ() % 16));
                         if (nodeFlag){
                             Vector3i pos = DataHelper.ForVector3i.from(mBPos);
                             byte one = 1; //Fuckin hate casting bytes fuck you
-                            GreedyNode.Blueprint blueprint = new GreedyNode.Blueprint(pos,
-                                    one,one,one);
+                            GreedyNode.Blueprint blueprint =
+                                    new GreedyNode.Blueprint(pos, one, one, one);
 
                             //It's already mutable, but this just clones it
                             BlockPos.MutableBlockPos stepper = mBPos.mutable();
@@ -93,11 +93,11 @@ public class GreedyNodeBuilder {
                                 blueprint.stepX();
                                 stepper.move(1, 0, 0);
                             }
-                            while(evaluator.evaluate(level, chunk, stepper,
+                            while(evaluator.evaluateSoloInstance(level, chunk, stepper,
                                     chunkSlice.getBlockState(stepper.getX() % 16,
                                             cY % 16, cZ % 16)));
                             //Expanding in the Z axis...
-                            boolean cont = true; //Flag to stop stepping Z
+                            boolean cont = true; //Flag to stop stepping Z (and Y later)
                             while(cont){
                                 cZ++; //Inc the Z position
                                 stepper.set(pos.x - 1, stepper.getY(), cZ); //Update the stepper position
@@ -108,7 +108,7 @@ public class GreedyNodeBuilder {
                                 for (int i = 0; i < blueprint.x; i++){
                                     stepper.move(1, 0, 0); //Moving the stepper
                                     //Evaluating the new node
-                                    boolean flag = evaluator.evaluate(level, chunk, stepper,
+                                    boolean flag = evaluator.evaluateSoloInstance(level, chunk, stepper,
                                             chunkSlice.getBlockState(stepper.getX() % 16,
                                                     cY % 16, cZ % 16));
                                     if (!flag) {
@@ -135,7 +135,7 @@ public class GreedyNodeBuilder {
                                     for (int j = 0; j < blueprint.z; j++) {
                                         stepper.move(0, 0, 1);
                                         //Evaluating the new node
-                                        boolean flag = evaluator.evaluate(level, chunk, stepper,
+                                        boolean flag = evaluator.evaluateSoloInstance(level, chunk, stepper,
                                                 chunkSlice.getBlockState(stepper.getX() % 16,
                                                         cY % 16, stepper.getZ() % 16));
                                         if (!flag) {
@@ -182,22 +182,28 @@ public class GreedyNodeBuilder {
     }
 
     /**
-     * Takes a QuadSpace that (might) extend over chunk (section) boundaries and slices
+     * Takes a QuadSpace that (might) extend over (Greedy) Chunk boundaries and slices
      * it into multiple QuadSpaces along the boundaries.
      * No QuadSpaces should overlap, and it should cover the same area as the initial section
-     * @param section The initial QuadSpace to divide across chunk boundaries
+     * @param section The initial QuadSpace to divide across (Greedy) Chunk boundaries
+     * @param GreedyChunk Are we slicing across GreedyChunk boundaries rather than MC chunks?
+     *                    (GreedyChunks are 64x64 blocks wide rather than 16x16)
      * @param sectionY Whether to also slice the QuadSpaces across the Y axis too,
      *                for use in managing Chunk Sections
+     *                 (not intended to be used while GreedyChunk argument is true, but does work)
      * @return an array of QuadSpaces that make up the same area as the initial QuadSpace but cut along the chunk boundaries
      * (or just an array of size 1 containing the initial QuadSpace argument
      * if it does not cross any chunk boundaries)
      */
-    public static QuadSpace[] sectionByChunkBoundaries(QuadSpace section, boolean sectionY){
+    public static QuadSpace[] sectionByChunkBoundaries(QuadSpace section, boolean GreedyChunk, boolean sectionY){
+        int sectionSize = 16;
+        if (GreedyChunk) sectionSize *= 4;
+
         Vector3i minor = section.minor;
         QuadSpace[] divide = new QuadSpace[1];
-        boolean xSpill = (minor.x % 16) + section.sizeX > 16,
-                ySpill = sectionY && ((minor.y % 16) + section.sizeY > 16),
-                zSpill = (minor.z % 16) + section.sizeZ > 16;
+        boolean xSpill = (minor.x % sectionSize) + section.sizeX > sectionSize,
+                ySpill = sectionY && ((minor.y % sectionSize) + section.sizeY > sectionSize),
+                zSpill = (minor.z % sectionSize) + section.sizeZ > sectionSize;
         if (xSpill || ySpill || zSpill) {
             //Take the distance between the minor edge of the Chunk
             // and the minor of the QuadSpace, subtract that from 16
@@ -205,14 +211,14 @@ public class GreedyNodeBuilder {
             // to the QuadSpace's minor point
             //Math.min ensures that it won't make a QSpace with dimensions larger than the
             // initial QSpace if it does extend beyond a Chunk Boundary
-            int xMax = Math.min(section.sizeX, 16 - (minor.x % 16)); //X-axis...
+            int xMax = Math.min(section.sizeX, sectionSize - (minor.x % sectionSize)); //X-axis...
             //If we want to section by the Y axis too, we'll need to ensure within section range
             // Same as the other two axis
             //Otherwise, we can set the max Y for a QSpace to just the initial Y size
             int yMax = sectionY ?
-                    Math.min(section.sizeY,  16 - (minor.y % 16)) :
+                    Math.min(section.sizeY,  sectionSize - (minor.y % sectionSize)) :
                     section.sizeY;
-            int zMax = Math.min(section.sizeZ, 16 - (minor.z % 16)); //Z-axis...
+            int zMax = Math.min(section.sizeZ, sectionSize - (minor.z % sectionSize)); //Z-axis...
             //That's the max size we can get away with for the first QuadSpace, so expand it.
             divide[0] = new QuadSpace(minor, xMax, yMax, zMax); //Add it to the array
 
@@ -230,7 +236,7 @@ public class GreedyNodeBuilder {
                     nextXMinor.add(nXMax, 0, 0);
                     //Make sure to check that the next "max size" won't exceed the bounds of the
                     // initial QuadSpace
-                    nXMax = Math.min(section.sizeX - xCycle, 16 - (nextXMinor.x % 16));
+                    nXMax = Math.min(section.sizeX - xCycle, sectionSize - (nextXMinor.x % sectionSize));
                     //Add the new QuadSpace to the array
                     divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextXMinor, nXMax, yMax, zMax));
 
@@ -242,7 +248,7 @@ public class GreedyNodeBuilder {
                         Vector3i nextYMinor = new Vector3i(nextXMinor);
                         while (yCycle < section.sizeY){
                             nextYMinor.add(0, nYMax, 0);
-                            nYMax = Math.min(section.sizeY - yCycle, 16 - (nextYMinor.y % 16));
+                            nYMax = Math.min(section.sizeY - yCycle, sectionSize - (nextYMinor.y % sectionSize));
                             divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextYMinor, nXMax, nYMax, zMax));
                             //Finally, if we ALSO cross the Z axis too, compute another QSpace for that too
                             if (zSpill){
@@ -251,7 +257,7 @@ public class GreedyNodeBuilder {
                                 Vector3i nextZMinor = new Vector3i(nextYMinor);
                                 while (zCycle < section.sizeZ){
                                     nextZMinor.add(0, 0, nZMax);
-                                    nZMax = Math.min(section.sizeZ - zCycle, 16 - (nextZMinor.z % 16));
+                                    nZMax = Math.min(section.sizeZ - zCycle, sectionSize - (nextZMinor.z % sectionSize));
                                     divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextZMinor, nXMax, nYMax, nZMax));
 
                                     zCycle += nZMax;
@@ -269,7 +275,7 @@ public class GreedyNodeBuilder {
                         Vector3i nextZMinor = new Vector3i(nextXMinor);
                         while (zCycle < section.sizeZ){
                             nextZMinor.add(0, 0, nZMax);
-                            nZMax = Math.min(section.sizeZ - zCycle, 16 - (nextZMinor.z % 16));
+                            nZMax = Math.min(section.sizeZ - zCycle, sectionSize - (nextZMinor.z % sectionSize));
                             divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextZMinor, nXMax, yMax, nZMax));
                             zCycle += nZMax;
                         }
@@ -284,7 +290,7 @@ public class GreedyNodeBuilder {
                 Vector3i nextYMinor = new Vector3i(minor);
                 while (yCycle < section.sizeY){
                     nextYMinor.add(0, nYMax, 0);
-                    nYMax = Math.min(section.sizeY - yCycle, 16 - (nextYMinor.y % 16));
+                    nYMax = Math.min(section.sizeY - yCycle, sectionSize - (nextYMinor.y % sectionSize));
                     divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextYMinor, xMax, nYMax, zMax));
                     if (zSpill){
                         int zCycle = zMax;
@@ -292,7 +298,7 @@ public class GreedyNodeBuilder {
                         Vector3i nextZMinor = new Vector3i(nextYMinor);
                         while (zCycle < section.sizeZ){
                             nextZMinor.add(0, 0, nZMax);
-                            nZMax = Math.min(section.sizeZ - zCycle, 16 - (nextZMinor.z % 16));
+                            nZMax = Math.min(section.sizeZ - zCycle, sectionSize - (nextZMinor.z % sectionSize));
                             divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextZMinor, xMax, nYMax, nZMax));
                             zCycle += nZMax;
                         }
@@ -307,7 +313,7 @@ public class GreedyNodeBuilder {
                 Vector3i nextZMinor = new Vector3i(minor);
                 while (zCycle < section.sizeZ){
                     nextZMinor.add(0, 0, nZMax);
-                    nZMax = Math.min(section.sizeZ - zCycle, 16 - (nextZMinor.z % 16));
+                    nZMax = Math.min(section.sizeZ - zCycle, sectionSize - (nextZMinor.z % sectionSize));
                     divide = DataHelper.Arrays.expandAndAdd(divide, new QuadSpace(nextZMinor, xMax, yMax, nZMax));
                     zCycle += nZMax;
                 }

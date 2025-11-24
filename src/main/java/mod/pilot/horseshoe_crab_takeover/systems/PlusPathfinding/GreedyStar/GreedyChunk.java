@@ -7,6 +7,8 @@ import org.joml.Vector2i;
 import org.joml.Vector3i;
 
 public class GreedyChunk {
+    public static byte GreedyChunkXZDimensions = 64;
+
     public GreedyChunk(long chunkID){
         this.chunkID = chunkID;
         int x = (int)(chunkID >>> 40) * 64;
