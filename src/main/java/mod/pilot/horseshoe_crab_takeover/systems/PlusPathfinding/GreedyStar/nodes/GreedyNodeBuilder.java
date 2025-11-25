@@ -53,7 +53,7 @@ public class GreedyNodeBuilder {
             if (chunkSlice.hasOnlyAir() && !evaluator.evaluateEvenIfOnlyAir()) return;
 
             QuadSpace[] cleared = new QuadSpace[1];
-            QuadSpace loopBounds = cleared[0] = new QuadSpace(section.minor);
+            QuadSpace loopBounds = cleared[0] = new QuadSpace(section.minorX, section.minorY, section.minorZ);
             GreedyNode.Blueprint[] blueprints = new GreedyNode.Blueprint[0];
 
             BlockPos.MutableBlockPos mBPos =

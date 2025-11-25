@@ -14,32 +14,54 @@ import java.util.Iterator;
  * the quad from the minor coordinate towards the positive of their value
  */
 public class QuadSpace{
-    public static QuadSpace INVALID = new QuadSpace(new Vector3i(), -1, -1, -1);
+    public static QuadSpace Invalid(){
+        return new QuadSpace(0, 0, 0, -1, -1, -1);
+    }
 
-    public QuadSpace(Vector3i minor, int sizeX, int sizeY, int sizeZ){
-        this.minor = minor;
+    public QuadSpace(int minorX, int minorY, int minorZ, int sizeX, int sizeY, int sizeZ){
+        this.minorX = minorX; this.minorY = minorY; this.minorZ = minorZ;
         this.sizeX = sizeX; this.sizeZ = sizeZ; this.sizeY = sizeY;
     }
-    public QuadSpace(Vector3i minor){
-        this(minor, 0, 0, 0);
+    public QuadSpace(int minorX, int minorY, int minorZ){
+        this(minorX, minorY, minorZ, 0, 0, 0);
+    }
+    public QuadSpace(Vector3i minor, int x, int y, int z) {
+        this(minor.x, minor.y, minor.z, x, y, x);
     }
 
+    /**
+     * The X|Y|Z component of the minor corner of this QuadSpace.
+     * <p>'Minor' corner is the corner of the QuadSpace with the lowest X, Y, and Z values</p>
+     */
+    public int minorX, minorY, minorZ;
+
     /**The "minor" coordinate of the quad, the corner of the quad with the lowest X, Y, and Z values*/
-    public Vector3i minor;
+    public Vector3i minor(){return new Vector3i(minorX, minorY, minorZ);}
     /**The size of the quad along the X|Y|Z axis*/
     public int sizeX, sizeY, sizeZ;
 
-    public void extend(int x, int y, int z){
-        sizeX += x;
-        sizeY += y;
-        sizeZ += z;
+    public void stepX(int count){
+        if (count < 0) minorZ += count;
+        else sizeX += count;
+    }
+    public void stepY(int count){
+        if (count < 0) minorY += count;
+        else sizeY += count;
+    }
+    public void stepZ(int count){
+        if (count < 0) minorZ += count;
+        else sizeZ += count;
     }
     public void stepX(){sizeX++;}
     public void stepY(){sizeY++;}
     public void stepZ(){sizeZ++;}
-    public void shiftMinor(int x, int y, int z){minor.add(x, y, z);}
+    public void shiftMinor(int x, int y, int z){
+        minorX += x; minorY += y; minorZ += z;
+    }
 
-    public boolean invalid(){return this.equals(INVALID);}
+    public boolean invalid(){
+        return (sizeX | sizeY | sizeZ) < 0;
+    }
     /**
      * Returns a "major" coordinate along any of the 3 axis (interchangeable)
      * @param x Whether the returned coordinate is a major along the X axis
@@ -49,9 +71,9 @@ public class QuadSpace{
      */
     public Vector3i major(boolean x, boolean y, boolean z){
         return new Vector3i(
-                minor.x + (x?sizeX:0),
-                minor.y + (y?sizeY:0),
-                minor.z + (z?sizeZ:0));
+                minorX + (x?sizeX:0),
+                minorY + (y?sizeY:0),
+                minorZ + (z?sizeZ:0));
     }
 
     /**
@@ -60,7 +82,7 @@ public class QuadSpace{
      * @return The true major of the quad
      */
     public Vector3i major(){
-        return new Vector3i(minor.x + sizeX, minor.y + sizeY, minor.z + sizeZ);
+        return new Vector3i(minorX + sizeX, minorY + sizeY, minorZ + sizeZ);
     }
 
     /**
@@ -72,23 +94,23 @@ public class QuadSpace{
     public boolean contains(BlockPos point){return contains(point.getX(), point.getY(), point.getZ());}
     public boolean contains(int x, int y, int z){
         if (invalid()) return false;
-        Vector3i major = major();
-        return x >= minor.x && x <= major.x
-                && y >= minor.y && y <= major.y
-                && z >= minor.z && z <= major.z;
+        return x >= minorX && (x - minorX) <= sizeX
+                && y >= minorY && (y - minorY) <= sizeY
+                && z >= minorZ && (z - minorZ) <= sizeZ;
     }
     public boolean contains(QuadSpace qSpace){
         if(this.invalid() || qSpace.invalid()) return false;
-        return this.contains(qSpace.minor) && this.contains(qSpace.major());
+        return this.contains(qSpace.minorX, qSpace.minorY, qSpace.minorZ)
+                && this.contains(qSpace.major());
     }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){
         if (invalid()) return false;
         double pointHalf = pointSize / 2;
         Vector3i major = major();
-        return x >= minor.x - pointHalf && x <= major.x + pointHalf
-                && y >= minor.y - pointHalf && y <= major.y + pointHalf
-                && z >= minor.z - pointHalf && z <= major.z + pointHalf;
+        return x >= minorX - pointHalf && x <= major.x + pointHalf
+                && y >= minorY - pointHalf && y <= major.y + pointHalf
+                && z >= minorZ - pointHalf && z <= major.z + pointHalf;
     }
 
     public Vector3iSpaceIterator getVector3iIterator(){
@@ -113,7 +135,7 @@ public class QuadSpace{
      * for (int x = 0; x <= sizeX; x++){
      *     for (int y = 0; y <= sizeY; y++){
      *         for (int z = 0; z <= sizeZ; z++){
-     *             return new YourVector(minor.x + x, minor.y + y, minor.z + z);
+     *             return new YourVector(minorX + x, minor.y + y, minorZ + z);
      *         }
      *     }
      * }
@@ -155,9 +177,9 @@ public class QuadSpace{
         private Vector3iSpaceIterator(){}
         @Override
         protected Vector3i getNext() {
-            return new Vector3i(minor.x + positionX,
-                    minor.y + positionY,
-                    minor.z + positionZ);
+            return new Vector3i(minorX + positionX,
+                    minorY + positionY,
+                    minorZ + positionZ);
         }
     }
     public class Vec3SpaceIterator extends VectorSpaceIterator<Vec3>{
@@ -165,22 +187,22 @@ public class QuadSpace{
         public boolean center;
         @Override protected Vec3 getNext() {
             double localization = center ? .5 : 0;
-            return new Vec3(minor.x + positionX + localization,
-                    minor.y + positionY + localization,
-                    minor.z + positionZ + localization);
+            return new Vec3(minorX + positionX + localization,
+                    minorY + positionY + localization,
+                    minorZ + positionZ + localization);
         }
     }
 
     public class BlockPosSpaceIterator extends VectorSpaceIterator<BlockPos>{
         @Override protected BlockPos getNext() {
-            return new BlockPos(minor.x + positionX,
-                    minor.y + positionY,
-                    minor.z + positionZ);
+            return new BlockPos(minorX + positionX,
+                    minorY + positionY,
+                    minorZ + positionZ);
         }
     }
     public class MutableBlockPosSpaceIterator extends BlockPosSpaceIterator{
         private MutableBlockPosSpaceIterator(){
-            mBPos = new BlockPos.MutableBlockPos(minor.x, minor.y, minor.z);
+            mBPos = new BlockPos.MutableBlockPos(minorX, minorY, minorZ);
         }
         public final BlockPos.MutableBlockPos mBPos;
 
@@ -218,8 +240,8 @@ public class QuadSpace{
     @Override
     public String toString() {
         return "QuadSpace[" +
-                "minor=" + minor +
-                ", sizeX=" + sizeX +
+                "minor=[" + minorX + ", " + minorY + ", " + minorZ +
+                "], sizeX=" + sizeX +
                 ", sizeY=" + sizeY +
                 ", sizeZ=" + sizeZ +
                 ']';

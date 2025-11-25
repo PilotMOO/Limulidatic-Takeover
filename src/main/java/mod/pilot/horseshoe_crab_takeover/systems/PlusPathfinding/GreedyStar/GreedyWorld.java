@@ -42,6 +42,9 @@ public class GreedyWorld {
     public static GreedyChunk retrieveFromWorldCoordinates(Vec3 pos){
         return retrieveOrCreateGreedyChunk(GreedyChunk.computeCoordinatesToID(pos));
     }
+    public static GreedyChunk retrieveFromWorldCoordinates(int worldX, int worldZ){
+        return retrieveOrCreateGreedyChunk(GreedyChunk.computeCoordinatesToID(worldX, worldZ));
+    }
     public static GreedyChunk retrieveOrCreateGreedyChunk(long chunkID){
         GreedyChunk gChunk = getFromRAMCache(chunkID);
         if (gChunk != null) return gChunk;
