@@ -11,10 +11,11 @@ import java.util.Iterator;
  * A 3d quad in space, expressed as a "minor" coordinate
  * (the corner with the lowest X, Y, and Z coordinate values)
  * with 3 respective sizes for the X, Y, and Z coordinates. Each size coordinate expands
- * the quad from the minor coordinate towards the positive of their value
+ * the quad from the minor coordinate towards the positive of their value.
+ * <p>A QuadSpace with negative X, Y, and/or Z sizes is assumed to be invalid</p>
  */
 public class QuadSpace{
-    public static QuadSpace Invalid(){
+    public static QuadSpace empty(){
         return new QuadSpace(0, 0, 0, -1, -1, -1);
     }
 
@@ -34,26 +35,69 @@ public class QuadSpace{
      * <p>'Minor' corner is the corner of the QuadSpace with the lowest X, Y, and Z values</p>
      */
     public int minorX, minorY, minorZ;
-
-    /**The "minor" coordinate of the quad, the corner of the quad with the lowest X, Y, and Z values*/
-    public Vector3i minor(){return new Vector3i(minorX, minorY, minorZ);}
     /**The size of the quad along the X|Y|Z axis*/
     public int sizeX, sizeY, sizeZ;
 
+    /**The "minor" coordinate of the quad, the corner of the quad with the lowest X, Y, and Z values*/
+    public Vector3i minor(){return new Vector3i(minorX, minorY, minorZ);}
+
+    /**
+     * "Steps" the QuadSpace {@code count} spaces (absolute) in the positive|negative
+     * direction along the X axis when the argument {@code count} is positive|negative
+     * <p>TL;DR expands the QuadSpace along the X axis. If the argument is negative, it
+     * expands the QuadSpace along the negative X axis, positive if positive.</p>
+     * <b>NEGATIVE VALUES DO NOT SHRINK THE QUADSPACE</b>
+     * @param count How much to "step" the QuadSpace along the positive|negative X axis,
+     *              depending on if the value is positive or negative.
+     *              Feeding in a negative value expands the QuadSpace along the negative axis,
+     *              it does not shrink the QuadSpace
+     */
     public void stepX(int count){
-        if (count < 0) minorZ += count;
-        else sizeX += count;
+        if (count < 0){
+            minorX += count;
+            sizeX -= count;
+        } else sizeX += count;
     }
+    /**
+     * "Steps" the QuadSpace {@code count} spaces (absolute) in the positive|negative
+     * direction along the Y axis when the argument {@code count} is positive|negative
+     * <p>TL;DR expands the QuadSpace along the Y axis. If the argument is negative, it
+     * expands the QuadSpace along the negative Y axis, positive if positive.</p>
+     * <b>NEGATIVE VALUES DO NOT SHRINK THE QUADSPACE</b>
+     * @param count How much to "step" the QuadSpace along the positive|negative Y axis,
+     *              depending on if the value is positive or negative.
+     *              Feeding in a negative value expands the QuadSpace along the negative axis,
+     *              it does not shrink the QuadSpace
+     */
     public void stepY(int count){
-        if (count < 0) minorY += count;
-        else sizeY += count;
+        if (count < 0) {
+            minorY += count;
+            sizeY -= count;
+        } else sizeY += count;
     }
+    /**
+     * "Steps" the QuadSpace {@code count} spaces (absolute) in the positive|negative
+     * direction along the Z axis when the argument {@code count} is positive|negative
+     * <p>TL;DR expands the QuadSpace along the Z axis. If the argument is negative, it
+     * expands the QuadSpace along the negative Z axis, positive if positive.</p>
+     * <b>NEGATIVE VALUES DO NOT SHRINK THE QUADSPACE</b>
+     * @param count How much to "step" the QuadSpace along the positive|negative Z axis,
+     *              depending on if the value is positive or negative.
+     *              Feeding in a negative value expands the QuadSpace along the negative axis,
+     *              it does not shrink the QuadSpace
+     */
     public void stepZ(int count){
-        if (count < 0) minorZ += count;
-        else sizeZ += count;
+        if (count < 0){
+            minorZ += count;
+            sizeZ -= count;
+        } else sizeZ += count;
     }
+
+    /**Expands the QuadSpace 1 unit along the positive X axis.<p>See {@link QuadSpace#stepX(int)}</p>*/
     public void stepX(){sizeX++;}
+    /**Expands the QuadSpace 1 unit along the positive Y axis.<p>See {@link QuadSpace#stepY(int)}</p>*/
     public void stepY(){sizeY++;}
+    /**Expands the QuadSpace 1 unit along the positive Z axis.<p>See {@link QuadSpace#stepZ(int)}</p>*/
     public void stepZ(){sizeZ++;}
     public void shiftMinor(int x, int y, int z){
         minorX += x; minorY += y; minorZ += z;
@@ -77,7 +121,7 @@ public class QuadSpace{
     }
 
     /**
-     * Creates and returns the true "Major" of this quad, the corner complete opposite of the minor
+     * Creates and returns the true "major" of this quad, the corner complete opposite of the minor
      * with the largest XYZ coordinate value.
      * @return The true major of the quad
      */
@@ -105,7 +149,7 @@ public class QuadSpace{
     }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){
-        if (invalid()) return false;
+        if (invalid() || pointSize <= 0) return false;
         double pointHalf = pointSize / 2;
         Vector3i major = major();
         return x >= minorX - pointHalf && x <= major.x + pointHalf
@@ -135,7 +179,7 @@ public class QuadSpace{
      * for (int x = 0; x <= sizeX; x++){
      *     for (int y = 0; y <= sizeY; y++){
      *         for (int z = 0; z <= sizeZ; z++){
-     *             return new YourVector(minorX + x, minor.y + y, minorZ + z);
+     *             return new YourVector(minorX + x, minorY + y, minorZ + z);
      *         }
      *     }
      * }
@@ -144,18 +188,18 @@ public class QuadSpace{
      * @param <I> What type of vector this SpaceIterator will return
      *           (see {@code YourVector} in equivalent code)
      */
-    private abstract class VectorSpaceIterator<I> implements Iterable<I>{
-        protected abstract I getNext();
+    private abstract class SpaceIterator<I> implements Iterable<I>{
         public int positionX = 0, positionY = 0, positionZ = 0;
 
+        protected abstract I getNext();
         public I step(){
-            boolean xThreshold = positionX < sizeX,
-                    yThreshold = positionY < sizeY,
-                    zThreshold = positionZ < sizeZ;
+            boolean xThreshold = positionX > sizeX,
+                    yThreshold = positionY > sizeY,
+                    zThreshold = positionZ > sizeZ;
 
             if (xThreshold || yThreshold || zThreshold){
                 if (!zThreshold) positionZ++;
-                else if (!yThreshold){ positionZ = 0; positionY++; }
+                else if (!yThreshold) {positionZ = 0; positionY++;}
                 else {positionZ = positionY = 0; positionX++;}
                 return getNext();
             }
@@ -173,7 +217,7 @@ public class QuadSpace{
         }
     }
 
-    public class Vector3iSpaceIterator extends VectorSpaceIterator<Vector3i>{
+    public class Vector3iSpaceIterator extends SpaceIterator<Vector3i> {
         private Vector3iSpaceIterator(){}
         @Override
         protected Vector3i getNext() {
@@ -182,7 +226,7 @@ public class QuadSpace{
                     minorZ + positionZ);
         }
     }
-    public class Vec3SpaceIterator extends VectorSpaceIterator<Vec3>{
+    public class Vec3SpaceIterator extends SpaceIterator<Vec3> {
         private Vec3SpaceIterator(boolean centerPosition){this.center = centerPosition;}
         public boolean center;
         @Override protected Vec3 getNext() {
@@ -193,7 +237,7 @@ public class QuadSpace{
         }
     }
 
-    public class BlockPosSpaceIterator extends VectorSpaceIterator<BlockPos>{
+    public class BlockPosSpaceIterator extends SpaceIterator<BlockPos> {
         @Override protected BlockPos getNext() {
             return new BlockPos(minorX + positionX,
                     minorY + positionY,
@@ -213,9 +257,9 @@ public class QuadSpace{
 
         @Override
         public BlockPos step() {
-            boolean xThreshold = positionX < sizeX,
-                    yThreshold = positionY < sizeY,
-                    zThreshold = positionZ < sizeZ;
+            boolean xThreshold = positionX > sizeX,
+                    yThreshold = positionY > sizeY,
+                    zThreshold = positionZ > sizeZ;
 
             if (xThreshold || yThreshold || zThreshold){
                 if (!zThreshold){

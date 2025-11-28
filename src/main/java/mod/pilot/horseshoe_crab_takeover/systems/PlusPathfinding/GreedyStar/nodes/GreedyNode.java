@@ -10,7 +10,7 @@ import org.joml.Vector3i;
 
 /**
  * The lowest level of the GreedyStar pathfinder system,
- * this represents a 3d quad of traversable ground.
+ * this represents a 3d quad of traversable terrain.
  * <p>
  *     IMPORTANT VARIABLES:
  * </p>
@@ -27,15 +27,19 @@ import org.joml.Vector3i;
  * and must be kept zeroed outside of those contexts.
  * <p></p>
  */
-public class GreedyNode {
+public class GreedyNode extends QuadSpace {
     public static boolean CRASH_ON_INVALID_ID = true;
-    public GreedyNode(byte nodeID, Vector3i minor, byte x, byte y, byte z){
-        this(nodeID, minor, x, y, z, false);
+
+    public static GreedyNode buildSkeleton(int minorX, int minorY, int minorZ){
+        byte one = 1, negOne = -1;
+        return new GreedyNode(negOne, minorX, minorY, minorZ, one, one, one, true);
     }
-    public GreedyNode(byte nodeID, Vector3i minor, byte x, byte y, byte z,
+    public GreedyNode(byte nodeID, int minorX, int minorY, int minorZ, byte x, byte y, byte z){
+        this(nodeID, minorX, minorY, minorZ, x, y, z, false);
+    }
+    public GreedyNode(byte nodeID, int minorX, int minorY, int minorZ, byte x, byte y, byte z,
                       boolean suppressInvalidID){
-        this.minor = minor;
-        this.x = x; this.y = y; this.z = z;
+        super(minorX, minorY, minorZ, x, y, z);
         this.nodeID = nodeID;
         if (!suppressInvalidID && !validateOrAttemptRepair()) {
             String err1 = String.format("[GREEDY NODE] WARNING! Incorrectly formatted context ID [%s] located in constructor! The first 3 bits have to be 0, those contain directional data only used in GreedyMap.NodeWrapper and must be left empty.", BitwiseDataHelper.parseByteToBinary(nodeID));
@@ -48,12 +52,11 @@ public class GreedyNode {
         }
     }
 
-    public final Vector3i minor;
-    public byte x, y, z;
-    public QuadSpace quadSpace(){return new QuadSpace(minor, x, y, z);}
+    public void flagInvalid(){nodeID = -1;}
+    public void assignID(byte ID){nodeID = ID;}
     public byte nodeID;
     public boolean validateOrAttemptRepair(){
-        if (validateID(nodeID)){
+        if (nodeID == -1 || containsDirectionalInfo(nodeID)){
             nodeID = attemptRepair(nodeID);
             return false;
         }
@@ -63,15 +66,15 @@ public class GreedyNode {
     public static byte attemptRepair(byte contextID){
         return (byte)(contextID & ~7);
     }
-    public static boolean validateID(byte contextID){
+    public static boolean containsDirectionalInfo(byte contextID){
         return (contextID & 7) != 0;
     }
     /**/
 
     public int compressSize(){
-        int compr = z;
-        compr = (compr << 8) | y;
-        compr = (compr << 8) | x;
+        int compr = sizeZ;
+        compr = (compr << 8) | sizeY;
+        compr = (compr << 8) | sizeX;
         return compr;
     }
 
@@ -86,7 +89,7 @@ public class GreedyNode {
     }
 
     public void unpackSize(int compressed){
-        x = decompressX(compressed); y = decompressY(compressed); z = decompressZ(compressed);
+        sizeX = decompressX(compressed); sizeY = decompressY(compressed); sizeZ = decompressZ(compressed);
     }
 
     /**
@@ -135,7 +138,7 @@ public class GreedyNode {
         public QuadSpace quadSpace(){return new QuadSpace(minor, x, y, z);}
 
         public GreedyNode build(GreedyMap gMap){
-            return new GreedyNode(gMap.newNodeID(), minor, x, y, z);
+            return new GreedyNode(gMap.newNodeID(), minor.x, minor.y, minor.z, x, y, z);
         }
     }
 }

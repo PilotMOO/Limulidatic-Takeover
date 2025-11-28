@@ -22,7 +22,7 @@ public class GreedyMap {
 
     public final byte mapID;
     public int computeMapLevelID(byte nodeID){
-        if (GreedyNode.validateID(nodeID)){
+        if (GreedyNode.containsDirectionalInfo(nodeID)){
             return (mapID << 8) | nodeID;
         } else return -1;
     }
@@ -59,7 +59,7 @@ public class GreedyMap {
      */
     public void computeBound(){
         int nodeCount = nodes.size; //How many nodes we are working with
-        if (nodeCount == 0) MapBound = QuadSpace.Invalid(); //If we don't have any nodes, the bounds are invalid
+        if (nodeCount == 0) MapBound = QuadSpace.empty(); //If we don't have any nodes, the bounds are invalid
         else if (nodeCount == 1){
             //If we only have 1 node, create a QuadSpace bound with the same dimensions as the node
             mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node = nodes.getNode(0);

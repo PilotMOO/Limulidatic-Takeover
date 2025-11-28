@@ -71,6 +71,10 @@ public abstract class GreedyNodeEvaluator {
         }
         return (byte)(((x / 16) << 2) | (z / 16));
     }
+    public void updatedViewedMCChunk(int relativeX, int relativeZ, int worldY){
+        this.curChunk = getChunk(relativeX, relativeZ);
+        this.curSection = getSection(curChunk, worldY);
+    }
     public LevelChunk getChunk(int relativeX, int relativeZ){
         int arrayIndex = (relativeX * 4) + relativeZ;
         LevelChunk chunk = ChunkArray2d[arrayIndex];
@@ -116,11 +120,11 @@ public abstract class GreedyNodeEvaluator {
     }
 
     protected int MinWorld, MaxWorld;
-    protected QuadSpace curQSpace;
+    protected GreedyNode curGNode;
     public GreedyNode buildNode(int worldX, int worldY, int worldZ, boolean reassignGChunk, boolean ignoreChecks){
         if (!ignoreChecks){
             //Y position out of the bounds of the dimension?
-            if (worldY <= MinWorld || MinWorld >= MaxWorld) {
+            if (worldY <= MinWorld || worldY >= MaxWorld) {
                 logger.log(String.format("WARNING! Attempted to evaluate a node at [%d, %d, %d] but the Y value were out of the bounds of the dimension's min|max block height[%d|%d]%n", worldX, worldY, worldZ, MinWorld, MaxWorld),
                         true);
                 return null;
@@ -146,118 +150,116 @@ public abstract class GreedyNodeEvaluator {
 
         byte chunkContextX = toGreedyChunkContext(worldX),
                 chunkContextZ = toGreedyChunkContext(worldZ);
-        curChunk = getChunk(chunkContextX / 16, chunkContextZ / 16);
-        curSection = getSection(curChunk, worldY);
+        int cRelativeX = chunkContextX / 16, cRelativeZ = chunkContextZ / 16;
 
-        cX = toMCChunkContext(worldX);
-        cY = toMCChunkContext(worldY);
-        cZ = toMCChunkContext(worldZ);
+        updatedViewedMCChunk(cRelativeX, cRelativeZ, worldY);
 
-        if (evaluatePosition(cX, cY, cZ)){
-            curQSpace = new QuadSpace(
-                    toGreedyChunkContext(worldX),
-                    toGreedyChunkContext(worldY),
-                    toGreedyChunkContext(worldZ));
-            while (stepNodeX(negOne)){}
+        int cX = chunkContextX, cZ = chunkContextZ;
 
+        if (evaluatePosition(cX % 16, worldY % 16, cZ % 16)){
+            curGNode = GreedyNode.buildSkeleton(chunkContextX, worldY, chunkContextZ);
+
+            //Step negative X
+            boolean changedChunks = false;
+            while(cX > -1){
+                cX--; //Step back
+                //If we are out of the bounds of the current MC chunk...
+                if (cX / 16 < cRelativeX) {
+                    changedChunks = true; //Set the flag so we can correct this later
+                    //reassign the current MC chunk and section
+                    updatedViewedMCChunk(--cRelativeX, cRelativeZ, worldY);
+                }
+                //Check the next coordinate, and step the GNode if valid
+                if (evaluatePosition(cX, worldY, cZ)) curGNode.stepX(-1);
+                else break; //Otherwise, stop checking backwards X values
+            }
+            //move the current X position back to the front of the QuadSpace
+            // (the initial starting point)
+            cX = chunkContextX;
+            if (changedChunks){
+                //If the chunks changed last loop, update the current chunk
+                cRelativeX = cX / 16;
+                updatedViewedMCChunk(cRelativeX, cRelativeZ, worldY);
+                changedChunks = false; //reset the flag for later use
+            }
+            //Step positive X
+            while(cX < 64){
+                cX++; //Step forward
+                if (cX / 16 > cRelativeX) {
+                    changedChunks = true;
+                    updatedViewedMCChunk(++cRelativeX, cRelativeZ, worldY);
+                } else break;
+                if (evaluatePosition(cX, worldY, cZ)) curGNode.stepX();
+                else break;
+            }
+            //Set the current X to the minor of the GreedyNode (lowest valid X value)
+            cX = curGNode.minorX;
+            if (changedChunks){
+                cRelativeX = cX / 16;
+                updatedViewedMCChunk(cRelativeX, cRelativeZ, worldY);
+                changedChunks = false; //reset the flag for later use
+            }
+            //Negative Z
+            while(cZ > -1){
+                cZ--; //Step back
+                if (cZ / 16 < cRelativeZ) {
+                    changedChunks = true;
+                    updatedViewedMCChunk(cRelativeX, --cRelativeZ, worldY);
+                }
+                //Cycle through all X positions
+                boolean valid = true;
+                for (byte i = 0; i < curGNode.sizeX; i++){
+                    byte checkX = (byte)(cX + i);
+                    if (checkX / 16 > cRelativeX){
+                        changedChunks = true;
+                        updatedViewedMCChunk(checkX / 16, cRelativeZ, worldY);
+                    }
+                    if (!evaluatePosition(checkX, cZ, worldY)) valid = false;
+                }
+                if (valid) curGNode.stepZ(-1);
+                else break;
+            }
+            if (changedChunks) {
+                //The viewed chunk's X relative might have changed in the last while loop
+                // but the cRelativeX value wasn't reassigned, so no need to fix that
+                cRelativeZ = cZ / 16;
+                updatedViewedMCChunk(cRelativeX, cRelativeZ, worldY);
+            }
+            //Positive Z
+            while(cZ < 64){
+                cZ--; //Step back
+                if (cZ / 16 > cRelativeZ) {
+                    changedChunks = true;
+                    updatedViewedMCChunk(cRelativeX, ++cRelativeZ, worldY);
+                }
+                //Cycle through all X positions
+                boolean valid = true;
+                for (byte i = 0; i < curGNode.sizeX; i++){
+                    byte checkX = (byte)(cX + i);
+                    if (checkX / 16 > cRelativeX){
+                        changedChunks = true;
+                        updatedViewedMCChunk(checkX / 16, cRelativeZ, worldY);
+                    }
+                    if (!evaluatePosition(checkX, cZ, worldY)) valid = false;
+                }
+                if (valid) curGNode.stepZ();
+                else break;
+            }
+            cZ = curGNode.minorZ; //Put it to the lowest valid Z point...
+            //No need to update cX because it should still be curGNode.minorX
+            // since checking the Z axis didn't modify the value, only read
+
+            //Check to see if our Evaluator can check positions below the given value
+            // (exists so grounded node evaluators don't waste computation checking
+            // points that will always be invalid, I.E. in the ground)
+            if (checkNegativeY()){
+                //ToDo: Set up negative and positive Y level evaluation
+            }
         } else {
             logger.log(String.format("Evaluator returned false for world position [%d, %d, %d]%n", worldX, worldY, worldZ), false);
             return null;
         }
     }
-
-    /**
-     * The current X|Y|Z contextual coordinate the evaluator is viewing.
-     * <p>Usually fed into the arguments of {@link GreedyNodeEvaluator#evaluatePosition(int, int, int)}
-     * and modified in methods that repeatedly invoke that method, E.G. {@link GreedyNodeEvaluator#buildNode(int, int, int, boolean, boolean)}</p>
-     * Should always be {@code >= 0} and {@code < 16}
-     */
-    byte cX, cY, cZ;
-
-    /**I fucking hate bytes in Java and having to byte cast all the time fuck you*/
-    protected static byte one = 1, negOne = -1;
-
-    protected boolean stepNodeX(){return stepNodeX(one);}
-    protected boolean stepNodeY(){return stepNodeY(one);}
-    protected boolean stepNodeZ(){return stepNodeZ(one);}
-
-    protected boolean stepNodeX(byte stepValue){
-        //This isn't a very helpful exception message but whatever.
-        // Don't put in 0 for the step value, don't waste our fucking time
-        if (stepValue == 0) throw new RuntimeException("Fuck you");
-
-        int absStep = Math.abs(stepValue);
-        if (absStep == 1){
-            boolean flag = evaluateBetween(cX, cY, cZ, stepValue, 1, 1);
-            /*evaluatePosition(cX + stepValue, cY, cZ);*/
-            if (flag) {
-                cX += stepValue;
-                curQSpace.stepX(stepValue);
-            }
-            return flag;
-        }
-        else {
-            byte singleStep = (byte)((stepValue < 0) ? -1 : 1);
-            for (int i = 0; i != stepValue; i += singleStep){
-                if (evaluatePosition(cX + i, cY, cZ)){
-                    cX += singleStep;
-                    curQSpace.stepX(singleStep);
-                } else return false;
-            }
-            return true;
-        }
-    }
-    protected boolean stepNodeY(byte stepValue){
-        //This isn't a very helpful exception message but whatever.
-        // Don't put in 0 for the step value, don't waste our fucking time
-        if (stepValue == 0) throw new RuntimeException("Fuck you");
-
-        int absStep = Math.abs(stepValue);
-        if (absStep == 1){
-            boolean flag = evaluatePosition(cX, cY + stepValue, cZ);
-            if (flag) {
-                cY += stepValue;
-                curQSpace.stepY(stepValue);
-            }
-            return flag;
-        }
-        else {
-            byte singleStep = (byte)((stepValue < 0) ? -1 : 1);
-            for (int i = 0; i != stepValue; i += singleStep){
-                if (evaluatePosition(cX, cY + i, cZ)){
-                    cY += singleStep;
-                    curQSpace.stepY(singleStep);
-                } else return false;
-            }
-            return true;
-        }
-    }
-    protected boolean stepNodeZ(byte stepValue){
-        //This isn't a very helpful exception message but whatever.
-        // Don't put in 0 for the step value, don't waste our fucking time
-        if (stepValue == 0) throw new RuntimeException("Fuck you");
-
-        int absStep = Math.abs(stepValue);
-        if (absStep == 1){
-            boolean flag = evaluatePosition(cX, cY, cZ + stepValue);
-            if (flag) {
-                cZ += stepValue;
-                curQSpace.stepZ(stepValue);
-            }
-            return flag;
-        }
-        else {
-            byte singleStep = (byte)((stepValue < 0) ? -1 : 1);
-            for (int i = 0; i != stepValue; i += singleStep){
-                if (evaluatePosition(cX, cY, cZ + i)){
-                    cZ += singleStep;
-                    curQSpace.stepZ(singleStep);
-                } else return false;
-            }
-            return true;
-        }
-    }
-
 
     /**
      * Evaluates a block position with the CONTEXTUAL [X,Y,Z] coordinate.
@@ -273,36 +275,6 @@ public abstract class GreedyNodeEvaluator {
      * @return If the node is valid, as defined by the evaluator
      */
     protected abstract boolean evaluatePosition(final int contextX, final int contextY, final int contextZ);
-    /**
-     * Shorthand, feeds in {@link GreedyNodeEvaluator#cX}, {@link GreedyNodeEvaluator#cY}, {@link GreedyNodeEvaluator#cZ} in as the arguments
-     * @return {@link GreedyNodeEvaluator#evaluatePosition(int, int, int)}
-     */
-    protected boolean evaluatePosition(){return evaluatePosition(cX, cY, cZ);}
-    protected boolean evaluateBetween(int startX, int startY, int startZ,
-                                      int xSize, int ySize, int zSize){
-        //We don't want all the xyz values to be 0
-        if ((xSize | ySize | zSize) == 0)
-            throw new RuntimeException("Cannot evaluate a section that lacks dimensions!");
-
-        byte stepX = (byte)(xSize < 0 ? -1 : 1),
-                stepY = (byte)(ySize < 0 ? -1 : 1),
-                stepZ = (byte)(zSize < 0 ? -1 : 1);
-
-        for (byte y = 0; y != ySize; y += stepY){
-            for (byte z = 0; z != zSize; z += stepZ){
-                for (byte x = 0; x != xSize; x += stepX){
-                    if (!evaluatePosition(startX + x, startY + y, startZ + z)){
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-    protected boolean evaluateAxisX(int startX, int startY, int startZ,
-                                    int ySize, int zSize){
-
-    }
 
 
     public abstract boolean evaluateSoloInstance(final Level level,
@@ -311,6 +283,7 @@ public abstract class GreedyNodeEvaluator {
                                                  final BlockPos.MutableBlockPos bPos,
                                                  final BlockState bState);
     public abstract boolean evaluateEvenIfOnlyAir();
+    public abstract boolean checkNegativeY();
 
 
     public static class StatusLogger{
