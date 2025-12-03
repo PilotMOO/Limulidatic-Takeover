@@ -1,6 +1,5 @@
 package mod.pilot.horseshoe_crab_takeover.data;
 
-import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
@@ -260,6 +259,15 @@ public class DataHelper {
             I[] newArray = (I[])new Object[cIndex + 1];
             System.arraycopy(array, 0, newArray, 0, cIndex + 1);
             return newArray;
+        }
+        public static <I> I[] removeAndDecrimate(I[] array, int index){
+            if (index < array.length){
+                int newSize = array.length - 1;
+                I[] newArray = (I[]) new Object[newSize];
+                System.arraycopy(array, 0, newArray, 0, index - 1);
+                System.arraycopy(array, index + 1, newArray, index, array.length - index - 1);
+                return newArray;
+            } else return array;
         }
         public static <I> I[] putInNextValidSlot(I[] array, I element){
             boolean _null = false;

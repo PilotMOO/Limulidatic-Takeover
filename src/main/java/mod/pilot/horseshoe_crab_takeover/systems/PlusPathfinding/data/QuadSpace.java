@@ -147,9 +147,7 @@ public class QuadSpace{
         return this.contains(qSpace.minorX, qSpace.minorY, qSpace.minorZ)
                 && this.contains(qSpace.major());
     }
-    //Idk if this works, but I'm not super great at geometry and that stuff so...
-    // Not my problem?
-    // If it doesn't work I'll rework it later...
+
     public boolean intersects(QuadSpace qSpace){
         if (invalid()) return false;
         //these variables could be inlined but that makes it less legible so... eh.
@@ -159,10 +157,11 @@ public class QuadSpace{
         int majorX = minorX + sizeX,
                 majorY = minorY + sizeY,
                 majorZ = minorZ + sizeZ;
-        //If all the minor points overshoot the majors, it can't intercept
-        if (qSpace.minorX > majorX && qSpace.minorY > majorY && qSpace.minorZ > majorZ) return false;
-        //Do the same check again but reversed
-        else return minorX <= otherMajorX || minorY <= otherMajorY || minorZ <= otherMajorZ;
+        //Check if the minor overshoots the other major
+        // or if the major undershoots the other minor for each axis
+        if (minorX > otherMajorX || majorX < qSpace.minorX) return false;
+        if (minorY > otherMajorY || majorY < qSpace.minorY) return false;
+        return minorZ <= otherMajorZ && majorZ >= qSpace.minorZ;
     }
     public boolean intersectInflated(QuadSpace qSpace, double inflation){
         if (invalid()) return false;
@@ -173,13 +172,9 @@ public class QuadSpace{
         double majorX = minorX + sizeX + inflation,
                 majorY = minorY + sizeY + inflation,
                 majorZ = minorZ + sizeZ + inflation;
-        if ((qSpace.minorX - half) > majorX &&
-                (qSpace.minorY - half) > majorY &&
-                (qSpace.minorZ - half) > majorZ) return false;
-            //Do the same check again but reversed
-        else return (minorX - half) <= otherMajorX ||
-                (minorY - half) <= otherMajorY ||
-                (minorZ - half) <= otherMajorZ;
+        if ((minorX - half) > otherMajorX || majorX < (qSpace.minorX - half)) return false;
+        if ((minorY - half) > otherMajorY || majorY < (qSpace.minorY - half)) return false;
+        return (minorZ - half) <= otherMajorZ && majorZ >= (qSpace.minorZ - half);
     }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){

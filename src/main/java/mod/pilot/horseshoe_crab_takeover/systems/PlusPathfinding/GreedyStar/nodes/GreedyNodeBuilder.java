@@ -15,7 +15,7 @@ import org.joml.Vector3i;
 
 
 public class GreedyNodeBuilder {
-    public static GreedyNode constructGroundedNode(int x, int y, int z,
+    /*public static GreedyNode constructGroundedNode(int x, int y, int z,
                                                    @Nullable final GreedyMap optionalMap){
         GreedyMap gMap;
         if (optionalMap == null){
@@ -30,21 +30,19 @@ public class GreedyNodeBuilder {
         if (optionalChunk == null){
             gChunk = GreedyWorld.retrieveOrCreateGreedyChunk(GreedyChunk.computeCoordinatesToID(x, z));
         } else gChunk = optionalChunk;
-    }
+    }*/
 
-    //This'll create or update a (few) Greedy Chunk(s)
-    // so maybe keeping it void is best, not certain
     public static void evaluateSection(Level level, QuadSpace section,
                                        GreedyNodeEvaluator evaluator,
                                        boolean assumeWithinBounds){
         if (assumeWithinBounds) evaluateContainedSection(level, section, evaluator);
-        else for (QuadSpace qSpace : sectionByChunkBoundaries(section, true)) {
+        else for (QuadSpace qSpace : sectionByChunkBoundaries(section, true,true)) {
             evaluateContainedSection(level, qSpace, evaluator);
         }
     }
     private static void evaluateContainedSection(Level level, QuadSpace section,
                                                  GreedyNodeEvaluator evaluator){
-        Vector3i minor = section.minor;
+        Vector3i minor = section.minor();
         int chunkX = minor.x >> 4, chunkZ = minor.z >> 4;
         LevelChunk chunk = (LevelChunk)level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
         if (chunk == null) System.err.printf("[NODE EVALUATOR] WARNING! Failed to evaluate a chunk-sectioned QuadSpace of %s due to it failing to retrieve Chunk[%d, %d]%n", section, chunkX, chunkZ);
@@ -198,8 +196,9 @@ public class GreedyNodeBuilder {
     public static QuadSpace[] sectionByChunkBoundaries(QuadSpace section, boolean GreedyChunk, boolean sectionY){
         int sectionSize = 16;
         if (GreedyChunk) sectionSize *= 4;
-
-        Vector3i minor = section.minor;
+        //it would be best to just change all references to the
+        // int variables rather than invoking minor() but i dont want to fix that rn
+        Vector3i minor = section.minor();
         QuadSpace[] divide = new QuadSpace[1];
         boolean xSpill = (minor.x % sectionSize) + section.sizeX > sectionSize,
                 ySpill = sectionY && ((minor.y % sectionSize) + section.sizeY > sectionSize),

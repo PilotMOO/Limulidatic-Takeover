@@ -44,7 +44,7 @@ public class GreedyNode extends QuadSpace {
         if (!suppressInvalidID && !validateOrAttemptRepair()) {
             String err1 = String.format("[GREEDY NODE] WARNING! Incorrectly formatted context ID [%s] located in constructor! The first 3 bits have to be 0, those contain directional data only used in GreedyMap.NodeWrapper and must be left empty.", BitwiseDataHelper.parseByteToBinary(nodeID));
             String info = String.format("[GREEDY NODE-- INFO] Attempted to repair node context ID; got value [%s]. This might be a corrupted ID, and may overlap with a preexisting node. Please reevaluate the construction of all GNodes to ensure that invalid IDs are never used as arguments. If you know what you are doing, pass in true for the suppressInvalidID constructor argument.", BitwiseDataHelper.parseByteToBinary(this.nodeID));
-            if (CRASH_ON_INVALID_ID) throw new RuntimeException(err1 + " CRASH_ON_INVALID_ID is enabled, so the invalid ID caused a crash.");
+            if (CRASH_ON_INVALID_ID) throw new RuntimeException(err1 + "\n--ERROR) CRASH_ON_INVALID_ID is enabled, so the invalid ID caused a crash.");
             else {
                 System.err.println(err1);
                 System.err.println(info);
@@ -114,6 +114,13 @@ public class GreedyNode extends QuadSpace {
 
     public QuadSpace buildEquvilantQuadSpace(){
         return new QuadSpace(minorX, minorY, minorZ, sizeX, sizeY, sizeZ);
+    }
+
+    @Override
+    public String toString() {
+        return "GreedyNode[" + nodeID + "]{" +
+                "minor[" + minorZ + ", " + minorY + ", " + minorX +
+                "], size[" + sizeZ + ", " + sizeY + ", " + sizeX + "]}";
     }
 
     public static class Blueprint{

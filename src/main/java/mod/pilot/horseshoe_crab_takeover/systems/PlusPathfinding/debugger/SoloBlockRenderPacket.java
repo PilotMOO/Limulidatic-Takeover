@@ -41,7 +41,7 @@ public class SoloBlockRenderPacket implements RenderDebuggerQue.IRenderInstructi
         PoseStack.Pose pose = poseStack.last();
         poseStack.popPose();
 
-        RenderUtil.drawTrueCube(buffer.getBuffer(RenderType.lightning()),
+        RenderUtil.drawTrueCube(buffer.getBuffer(RenderType.endGateway()),
                 pose.pose(), pose.normal(),
                 .5f,
                 1f, 0, 0, .75f);

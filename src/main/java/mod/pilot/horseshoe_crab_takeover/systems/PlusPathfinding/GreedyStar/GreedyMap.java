@@ -1,13 +1,17 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar;
 
+import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.core.Direction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3i;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 public class GreedyMap {
     public static int DEFAULT_MapExtensionRange = 4;
@@ -26,8 +30,8 @@ public class GreedyMap {
     public final byte mapID;
     public int computeMapLevelID(byte nodeID){
         if (GreedyNode.containsDirectionalInfo(nodeID)){
-            return (mapID << 8) | nodeID;
-        } else return -1;
+            return (mapID << 8) | (nodeID & ~7);
+        } else return (mapID << 8) | nodeID;
     }
     public byte newNodeID(){
         byte[] existingIDs = new byte[nodes.size];
@@ -99,6 +103,30 @@ public class GreedyMap {
     }
 
     public MapContext.Container nodes;
+    public void addNode(GreedyNode gNode){
+        gNode.assignID(newNodeID());
+        MapContext mapC = wrap(gNode);
+        nodes.addContext(mapC);
+        //ToDo: Add system to evaluate all other contained GNodes to see if they are
+        // "sisters" to the newly added GNode, then update the MapContexts as needed
+        // (will need to add a feature to QuadSpaces to be able to look for touching edges or faces...)
+    }
+
+    public void removeNode(GreedyNode gNode){
+        int index = 0;
+        boolean flag = false;
+        for (; index < nodes.size; index++){
+            if (nodes.get(index).contains(gNode)){
+                flag = true; break;
+            }
+        }
+        if (flag) nodes.removeAtIndex(index);
+    }
+    public void removeNode(int index){ nodes.removeAtIndex(index); }
+    public void removeNode(MapContext context){ removeNode(context, false); }
+    public void removeNode(MapContext context, boolean fuzzy){
+        nodes.removeContext(context, fuzzy);
+    }
     public @Nullable MapContext contextFromID(byte nodeID){
         for (@NotNull Iterator<MapContext> it = nodes.contextIterator(); it.hasNext(); ) {
             MapContext context = it.next();
@@ -126,6 +154,23 @@ public class GreedyMap {
     }
 
     public static final class MapContext {
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof MapContext that)) return false;
+            return size == that.size && Objects.equals(node, that.node) && Objects.deepEquals(relativeIDs, that.relativeIDs);
+        }
+        public boolean fuzzyEquals(MapContext context){
+            return node.equals(context.node);
+        }
+        public boolean contains(GreedyNode gNode){
+            return node.equals(gNode);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(node, Arrays.hashCode(relativeIDs), size);
+        }
+
         public GreedyNode node;
         public byte[] relativeIDs;
         public int size;
@@ -287,6 +332,26 @@ public class GreedyMap {
                     System.arraycopy(contexts, index, contexts, index + 1, size - index);
                 }
                 contexts[index] = element;
+            }
+
+            public void removeContext(MapContext context){removeContext(context, false);}
+            public void removeContext(MapContext context, boolean fuzzy){
+                removeAtIndex(findIndex(context, fuzzy));
+            }
+            public void removeAtIndex(int index){
+                if (index == -1) return;
+                contexts = DataHelper.Arrays.removeAndDecrimate(contexts, index);
+                size--;
+            }
+
+            public int findIndex(MapContext context){ return findIndex(context, false); }
+            public int findIndex(MapContext context, boolean fuzzy){
+                if (fuzzy) for (int index = 0; index < size; index++){
+                        if (contexts[index].fuzzyEquals(context)) return index;
+                } else for (int index = 0; index < size; index++){
+                    if (contexts[index].equals(context)) return index;
+                }
+                return -1;
             }
 
             private void growArray(int amount){

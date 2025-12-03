@@ -406,9 +406,10 @@ public abstract class GreedyNodeEvaluator {
             //Finally, we have expanded the node to all valid places
             // let's build it and slot it into its own GreedyMap then return it
             GreedyMap gMap = greedyChunk.locateClosest(curGNode, GreedyChunk.SearchType.MapExtension);
-            if (gMap == null){
-                gMap = greedyChunk.buildNewMap();
-            }
+            if (gMap == null) gMap = greedyChunk.buildNewMap();
+            gMap.addNode(curGNode);
+            logger.log(String.format("Successfully evaluated position [%d, %d, %d] with resulting GreedyNode of %s with GlobalID[%d]%n)", worldX, worldY, worldZ, curGNode.toString(), greedyChunk.computeGlobalID(gMap.computeMapLevelID(curGNode.nodeID))), false);
+            return curGNode;
         }
         else {
             logger.log(String.format("Evaluator returned false for world position [%d, %d, %d]%n", worldX, worldY, worldZ), false);

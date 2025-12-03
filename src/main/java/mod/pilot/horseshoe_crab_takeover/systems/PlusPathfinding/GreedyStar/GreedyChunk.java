@@ -52,6 +52,26 @@ public class GreedyChunk {
     }
 
     public GreedyMap buildNewMap() {
+        GreedyMap gMap = new GreedyMap(newMapID());
+        addMap(gMap);
+        return gMap;
+    }
+    public byte newMapID(){
+        byte[] existingIDs = new byte[maps.length];
+        for (int i = 0; i < maps.length; i++) existingIDs[i] = maps[i].mapID;
+
+        byte id = 0; //Node ID 0 is not valid, this will be inc'd before being used
+        while(true){
+            id++; //Inc the ID
+            boolean flag = false; //if the ID is already used
+            for (byte b : existingIDs){
+                if (b == id) { //Check all ID's, if any match, set the flag, break, and continue.
+                    flag = true; break;
+                }
+            }
+            if (flag) continue; //If the ID is already in use, try the next inc
+            return id; //Otherwise, this is our next ID!
+        }
     }
 
     public enum SearchType{
