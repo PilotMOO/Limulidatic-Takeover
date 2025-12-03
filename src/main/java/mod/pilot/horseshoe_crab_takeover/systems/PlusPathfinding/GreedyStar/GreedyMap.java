@@ -13,6 +13,9 @@ public class GreedyMap {
     public static int DEFAULT_MapExtensionRange = 4;
     public int MapExtensionRange;
 
+    public GreedyMap(byte mapID){
+        this(new MapContext.Container(), mapID);
+    }
     public GreedyMap(MapContext.Container nodes, byte mapID){
         this.nodes = nodes;
         this.mapID = mapID;
@@ -62,36 +65,35 @@ public class GreedyMap {
         if (nodeCount == 0) MapBound = QuadSpace.empty(); //If we don't have any nodes, the bounds are invalid
         else if (nodeCount == 1){
             //If we only have 1 node, create a QuadSpace bound with the same dimensions as the node
-            mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node = nodes.getNode(0);
-            MapBound = new QuadSpace(node.minor, node.x, node.y, node.z);
+            MapBound = nodes.getNode(0).buildEquvilantQuadSpace();
         }
         else if (nodeCount == 2) {
             //If we have two nodes, find the extremes
-            mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
-            Vector3i minor1 = node1.minor, minor2 = node2.minor;
-            Vector3i minor = new Vector3i(Math.min(minor1.x, minor2.x),
-                    Math.min(minor1.y, minor2.y),
-                    Math.min(minor1.z, minor2.z));
-            MapBound = new QuadSpace(minor, Math.min(node1.x, node2.x),
-                    Math.min(node1.y, node2.y), Math.min(node1.z, node2.z));
+            GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
+            MapBound = new QuadSpace(
+                    Math.min(node1.minorX, node2.minorX),
+                    Math.min(node1.minorY, node2.minorY),
+                    Math.min(node1.minorZ, node2.minorZ),
+                    Math.max(node1.sizeX, node2.sizeX),
+                    Math.max(node1.sizeY, node2.sizeY),
+                    Math.max(node1.sizeZ, node2.sizeZ));
         }
         else {
             //Otherwise, loop through all nodes and locate the extremes
             int xCorner, yCorner, zCorner, xMajor, yMajor, zMajor;
             xCorner = yCorner = zCorner = Integer.MAX_VALUE;
             xMajor = yMajor = zMajor = Integer.MIN_VALUE;
-            for (mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode node : nodes){
-                Vector3i minor = node.minor;
-                xCorner = Math.min(xCorner, minor.x); /**/
-                yCorner = Math.min(yCorner, minor.y); /**/
-                zCorner = Math.min(zCorner, minor.z); //Find the smallest minor
+            for (GreedyNode node : nodes){
+                xCorner = Math.min(xCorner, node.minorX); //Find the smallest minor
+                yCorner = Math.min(yCorner, node.minorY); /**/
+                zCorner = Math.min(zCorner, node.minorZ); /**/
 
-                xMajor = Math.max(xMajor, minor.x + node.x); /**/
-                yMajor = Math.max(yMajor, minor.y + node.y); /**/
-                zMajor = Math.max(zMajor, minor.z + node.z); //Find the biggest major
+                xMajor = Math.max(xMajor, node.minorX + node.sizeX); //Find the biggest major
+                yMajor = Math.max(yMajor, node.minorY + node.sizeY); /**/
+                zMajor = Math.max(zMajor, node.minorZ + node.sizeZ); /**/
             }
             //Combine into a QuadSpace of the extremes
-            MapBound = new QuadSpace(new Vector3i(xCorner, yCorner, zCorner),
+            MapBound = new QuadSpace(xCorner, yCorner, zCorner,
                     xMajor - xCorner, yMajor - yCorner, zMajor - zCorner);
         }
     }
@@ -252,6 +254,10 @@ public class GreedyMap {
         }
 
         public static class Container implements Iterable<GreedyNode>{
+            public Container(){
+                contexts = new MapContext[0];
+                size = 0;
+            }
             protected MapContext[] contexts;
             public int size;
 

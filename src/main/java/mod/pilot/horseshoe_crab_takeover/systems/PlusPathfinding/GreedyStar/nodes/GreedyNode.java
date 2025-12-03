@@ -112,6 +112,10 @@ public class GreedyNode extends QuadSpace {
         //Return regardless of if it exists, the method is @Nullable
     }
 
+    public QuadSpace buildEquvilantQuadSpace(){
+        return new QuadSpace(minorX, minorY, minorZ, sizeX, sizeY, sizeZ);
+    }
+
     public static class Blueprint{
         private static final byte zero = 0;
         public Blueprint(Vector3i minor){

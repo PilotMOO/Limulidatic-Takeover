@@ -147,6 +147,40 @@ public class QuadSpace{
         return this.contains(qSpace.minorX, qSpace.minorY, qSpace.minorZ)
                 && this.contains(qSpace.major());
     }
+    //Idk if this works, but I'm not super great at geometry and that stuff so...
+    // Not my problem?
+    // If it doesn't work I'll rework it later...
+    public boolean intersects(QuadSpace qSpace){
+        if (invalid()) return false;
+        //these variables could be inlined but that makes it less legible so... eh.
+        int otherMajorX = qSpace.minorX + qSpace.sizeX,
+                otherMajorY = qSpace.minorY + qSpace.sizeY,
+                otherMajorZ = qSpace.minorZ + qSpace.sizeZ;
+        int majorX = minorX + sizeX,
+                majorY = minorY + sizeY,
+                majorZ = minorZ + sizeZ;
+        //If all the minor points overshoot the majors, it can't intercept
+        if (qSpace.minorX > majorX && qSpace.minorY > majorY && qSpace.minorZ > majorZ) return false;
+        //Do the same check again but reversed
+        else return minorX <= otherMajorX || minorY <= otherMajorY || minorZ <= otherMajorZ;
+    }
+    public boolean intersectInflated(QuadSpace qSpace, double inflation){
+        if (invalid()) return false;
+        double half = inflation / 2d;
+        int otherMajorX = qSpace.minorX + qSpace.sizeX,
+                otherMajorY = qSpace.minorY + qSpace.sizeY,
+                otherMajorZ = qSpace.minorZ + qSpace.sizeZ;
+        double majorX = minorX + sizeX + inflation,
+                majorY = minorY + sizeY + inflation,
+                majorZ = minorZ + sizeZ + inflation;
+        if ((qSpace.minorX - half) > majorX &&
+                (qSpace.minorY - half) > majorY &&
+                (qSpace.minorZ - half) > majorZ) return false;
+            //Do the same check again but reversed
+        else return (minorX - half) <= otherMajorX ||
+                (minorY - half) <= otherMajorY ||
+                (minorZ - half) <= otherMajorZ;
+    }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){
         if (invalid() || pointSize <= 0) return false;

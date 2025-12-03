@@ -1,6 +1,8 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar;
 
+import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.world.phys.Vec3;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joml.Vector2i;
@@ -20,11 +22,12 @@ public class GreedyChunk {
 
     public GreedyMap[] maps;
     public void addMap(GreedyMap map){
-        int newSize = maps.length + 1;
+        maps = DataHelper.Arrays.expandAndAdd(maps, map);
+        /*int newSize = maps.length + 1;
         GreedyMap[] newMaps = new GreedyMap[newSize];
         System.arraycopy(maps, 0, newMaps, 0, newSize);
         newMaps[newSize - 1] = map;
-        maps = newMaps;
+        maps = newMaps;*/
     }
     public void removeMap(int index){
         int newSize = maps.length - 1;
@@ -46,6 +49,9 @@ public class GreedyChunk {
             if (map.mapID == mapID) return map;
         }
         return null;
+    }
+
+    public GreedyMap buildNewMap() {
     }
 
     public enum SearchType{
@@ -73,6 +79,7 @@ public class GreedyChunk {
      */
     public @Nullable GreedyMap locateClosest(final int x, final int y, final int z,
                                                 SearchType searchType){
+        if (maps.length == 0) return null;
         return switch(searchType){
             case InBounds -> {
                 for (GreedyMap gMap : maps) if (gMap.MapBound.contains(x,y,z)) yield gMap;
@@ -98,6 +105,44 @@ public class GreedyChunk {
             // part of a rectangular prism so this'll just be... left as this until I get gud
             case AnyClosest -> null;
             default -> null;
+        };
+    }
+
+    /**
+     * I dont feel like copying over the other javadoc so just go read that
+     * <p>{@link GreedyChunk#locateClosest(int, int, int, SearchType)}</p>
+     * Oh and this override of it locates the closest map within distance of any corner of the QSpace
+     * @param localizedQSpace the QuadSpace to evaluate distance to
+     * @param searchType dictates how the method decides if a map is valid for returning
+     * @return fuck you
+     */
+    public @Nullable GreedyMap locateClosest(QuadSpace localizedQSpace, SearchType searchType){
+        if (maps.length == 0) return null;
+        else return switch (searchType){
+            case InBounds -> {
+                for (GreedyMap gMap : maps){
+                    if (gMap.MapBound.intersects(localizedQSpace)) yield gMap;
+                }
+                yield null;
+            }
+            case MapExtension -> {
+                for (GreedyMap gMap : maps){
+                    if (gMap.MapBound.intersectInflated(localizedQSpace, gMap.MapExtensionRange * 2)){
+                        yield gMap;
+                    }
+                }
+                yield null;
+            }
+            case MapExtensionDefault -> {
+                for (GreedyMap gMap : maps){
+                    if (gMap.MapBound.intersectInflated(localizedQSpace, GreedyMap.DEFAULT_MapExtensionRange)){
+                        yield gMap;
+                    }
+                }
+                yield null;
+            }
+            //Bleh i dont wanna do this shit so nah
+            case AnyClosest -> null;
         };
     }
 
