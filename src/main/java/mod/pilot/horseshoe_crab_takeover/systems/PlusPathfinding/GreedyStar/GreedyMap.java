@@ -145,8 +145,9 @@ public class GreedyMap {
     }
 
     public static GreedyMap retrieveFromGlobalID(long globalID){
+
         //Only check RAM and File cache, we don't want to make a new chunk if there isn't one
-        GreedyChunk gChunk = GreedyWorld.retrieveOnly(globalID);
+        GreedyChunk gChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveOnly(globalID);
         if (gChunk == null) return null; //Womp, no GChunks exist for that ID
         byte mapID = GreedyWorld.isolateMapID(globalID); //Getting the GMap from the I.D....
         return gChunk.getMap(mapID);

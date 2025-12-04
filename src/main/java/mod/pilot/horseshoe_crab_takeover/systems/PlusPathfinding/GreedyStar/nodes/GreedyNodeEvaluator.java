@@ -31,10 +31,10 @@ public abstract class GreedyNodeEvaluator {
 
     public StatusLogger logger;
     public void Oops(boolean crash, int count){
+        if (count == -1) logger.printAll(); else logger.printLast(count);
         if (crash){
             throw new RuntimeException(String.format("GreedyNodeEvaluator[%s] had a little fucky wucky", this));
         }
-        if (count == -1) logger.printAll(); else logger.printLast(count);
     }
 
     //TODO: Read this shit and pick it back up when you feel like it
@@ -137,7 +137,7 @@ public abstract class GreedyNodeEvaluator {
             int maxX = minX + 64, maxZ = minZ + 64;
             if (worldX < minX || worldX >= maxX || worldZ < minZ || worldZ >= maxZ){
                 if (reassignGChunk) {
-                    GreedyChunk newGChunk = GreedyWorld.retrieveFromWorldCoordinates(worldX, worldZ);
+                    GreedyChunk newGChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveFromWorldCoordinates(worldX, worldZ);
                     logger.log(String.format("Reassigning current GreedyChunk to [%d]...%n", newGChunk.chunkID),
                             false);
                     setupGChunkEvaluation(level, newGChunk);
@@ -471,7 +471,7 @@ public abstract class GreedyNodeEvaluator {
             printLog(logs[logCount - 1]);
         }
         public void printLast(int count){
-            int index = logCount - (count + 1);
+            int index = Math.min(logCount - (count + 1), 0);
             for (; index < logCount; index++) printLog(logs[index]);
         }
 
