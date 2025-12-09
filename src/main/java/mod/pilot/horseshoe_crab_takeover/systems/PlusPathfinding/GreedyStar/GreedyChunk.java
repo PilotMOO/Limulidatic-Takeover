@@ -15,6 +15,12 @@ public class GreedyChunk {
         this.chunkID = chunkID;
         int x = (int)(chunkID >>> 40) * 64;
         int z = (int)(chunkID << 24 >>> 40) * 64;
+        //GreedyChunk ID compression removes accuracy so GreedyChunks along either axis
+        // has their relative value set to 0 by the decompressor
+        // rather than the actual -32 it needs
+        // (or the negative of 1/2 of the XZ dimensions of a GreedyChunk)
+        if (x == 0) x = -(GreedyChunkXZDimensions / 2);
+        if (z == 0) z = -(GreedyChunkXZDimensions / 2);
         relative = new Vector2i(x, z);
     }
     public final Vector2i relative;

@@ -57,6 +57,7 @@ public class GreedyWorld {
         if (greedyWorldCache != null) throw new RuntimeException("ERROR! Tried to set up GreedyWorld despite a pre-existing cache existing! Make sure the GreedyWorld cache is already cleared via GreedyWorld#cleanCache() before calling init");
         //Add config option for changing default max chunk count
         MAX_CHUNK_COUNT = DEFAULT_MAX_CHUNK_COUNT;
+        greedyWorldCache = new GreedyChunk[0];
     }
     public void cleanCache(){
         if (greedyWorldCache == null) throw new RuntimeException("ERROR! Tried to clear GreedyWorld cache before initialization! Make sure GreedyWorld is already set up before attempting to clear Cache.");
@@ -73,7 +74,7 @@ public class GreedyWorld {
         if (chunk == null) return null;
         int newSize = greedyWorldCache.length + 1;
         GreedyChunk[] newRAMCache = new GreedyChunk[newSize];
-        System.arraycopy(greedyWorldCache, 0, newRAMCache, 0, newSize);
+        if (newSize > 1) System.arraycopy(greedyWorldCache, 0, newRAMCache, 0, newSize);
         newRAMCache[newSize - 1] = chunk;
         greedyWorldCache = newRAMCache;
         return chunk;

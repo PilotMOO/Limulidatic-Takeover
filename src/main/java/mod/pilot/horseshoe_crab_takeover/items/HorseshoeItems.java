@@ -27,6 +27,8 @@ public class HorseshoeItems {
             () -> new BitPackageTestWand(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item>  FACE_DEBUG_WAND = ITEMS.register("face_debug_wand",
             () -> new FaceDebugRenderWand(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item>  GSTAR_NODE_WAND = ITEMS.register("gstar_node_wand",
+            () -> new GStarNodeGeneratorWand(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

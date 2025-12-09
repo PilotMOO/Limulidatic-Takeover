@@ -17,6 +17,8 @@ import org.joml.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+
 public abstract class GreedyNodeEvaluator {
     private static final Logger classLogger = LoggerFactory.getLogger(GreedyNodeEvaluator.class);
 
@@ -78,6 +80,7 @@ public abstract class GreedyNodeEvaluator {
     }
     public LevelChunk getChunk(int relativeX, int relativeZ){
         int arrayIndex = (relativeX * 4) + relativeZ;
+        System.out.println("Trying to get chunk index ");
         LevelChunk chunk = ChunkArray2d[arrayIndex];
         if (chunk == null){
             int chunkX = greedyChunk.relative.x + (relativeX * 16),
@@ -96,7 +99,13 @@ public abstract class GreedyNodeEvaluator {
     }
 
     public static byte toGreedyChunkContext(int coordinate){
-        return (byte)(coordinate % GreedyChunk.GreedyChunkXZDimensions);
+        //Fix this, it doesn't return the right values if the coordinate is negative
+        // if the value is negative, I think you just need to flip it?
+        // like, if it was -16 (AFTER remainer), then the right value would be 47 (63 - 16 = 47)
+        // but if it's along the X or Z axis (within 32 of 0)
+        // then the offset would be... weird. For both positive and negative values...
+        //ToDo: FIX CHUNK CONTEXTUALIZER; SEE ABOVE
+        return (byte)Math.abs(coordinate % GreedyChunk.GreedyChunkXZDimensions);
     }
     public static byte toMCChunkContext(int coordinate){
         return (byte)(coordinate % 16);
@@ -123,6 +132,8 @@ public abstract class GreedyNodeEvaluator {
     protected int MinWorld, MaxWorld;
     protected GreedyNode curGNode;
     public GreedyNode buildNode(int worldX, int worldY, int worldZ, boolean reassignGChunk, boolean ignoreChecks){
+        System.out.println("BUILDING NODE");
+
         if (!ignoreChecks){
             //Y position out of the bounds of the dimension?
             if (worldY <= MinWorld || worldY >= MaxWorld) {
@@ -137,7 +148,7 @@ public abstract class GreedyNodeEvaluator {
             int maxX = minX + 64, maxZ = minZ + 64;
             if (worldX < minX || worldX >= maxX || worldZ < minZ || worldZ >= maxZ){
                 if (reassignGChunk) {
-                    GreedyChunk newGChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveFromWorldCoordinates(worldX, worldZ);
+                    GreedyChunk newGChunk = GreedyWorld.WORLD_DEFAULT().retrieveFromWorldCoordinates(worldX, worldZ);
                     logger.log(String.format("Reassigning current GreedyChunk to [%d]...%n", newGChunk.chunkID),
                             false);
                     setupGChunkEvaluation(level, newGChunk);
@@ -152,6 +163,8 @@ public abstract class GreedyNodeEvaluator {
         byte chunkContextX = toGreedyChunkContext(worldX),
                 chunkContextZ = toGreedyChunkContext(worldZ);
         int chunkRelativeX = chunkContextX / 16, chunkRelativeZ = chunkContextZ / 16;
+
+        System.out.println("chunk xz context is [" + chunkContextX + ", " + chunkContextZ + "]");
 
         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
 
@@ -425,6 +438,11 @@ public abstract class GreedyNodeEvaluator {
      * Tip! {@link GreedyNodeEvaluator#curChunk} and {@link GreedyNodeEvaluator#curSection}
      * will have the relevant values already preassigned when this method is invoked by
      * {@link GreedyNodeEvaluator#buildNode(int, int, int, boolean, boolean)}
+     *
+     * <p>TO DO: ADD ARGUMENTS TO ALLOW THE METHOD TO KNOW WHERE curSection
+     * IS IN CONTEXT TO THE REST OF THE CHUNK'S SECTIONS
+     * SO TRANS-SECTION BLOCKSTATE EVALUATION CAN OCCUR</p>
+     * (E.G. for checking the block below the position in case it overspills to the below section)
      * @param contextX The Contextual X position
      * @param contextY The Contextual Y position
      * @param contextZ The Contextual Z position
@@ -448,31 +466,33 @@ public abstract class GreedyNodeEvaluator {
         public StatusLogger(String name){
             loggerName = name;
             loggerAwake = System.nanoTime();
-            logs = new LogInstance[0];
+            logs = new ArrayList<>();
         }
         private final String loggerName;
         private final long loggerAwake;
-        public LogInstance[] logs;
+        public ArrayList<LogInstance> logs;
         public int logCount = 0;
 
         public void log(String msg, boolean err){
-            DataHelper.Arrays.expandAndAdd(logs, new LogInstance(System.nanoTime(), err, msg));
+            logs.add(new LogInstance(System.nanoTime(), err, msg));
             logCount++;
         }
         public void printLog(LogInstance log){
+            System.out.println("PRINTING LOGS");
             String print = String.format("[%s : %s, %s] ", loggerAwake, log.logDateNano, log.logDateNano - loggerAwake);
             print = loggerName + print + log.msg;
             if (log.err) classLogger.error(print); else classLogger.info(print);
         }
         public void printAll(){
+            System.out.println("Printing logs total : " + logCount);
             for (LogInstance log : logs) printLog(log);
         }
         public void printLast(){
-            printLog(logs[logCount - 1]);
+            printLog(logs.get(logCount - 1));
         }
         public void printLast(int count){
             int index = Math.min(logCount - (count + 1), 0);
-            for (; index < logCount; index++) printLog(logs[index]);
+            for (; index < logCount; index++) printLog(logs.get(index));
         }
 
         public record LogInstance(long logDateNano, boolean err, String msg){}

@@ -249,7 +249,7 @@ public class DataHelper {
         public static <I> I[] expandAndAdd(I[] array, I element){
             int newSize = array.length + 1;
             I[] newArray = (I[]) new Object[newSize];
-            System.arraycopy(array, 0, newArray, 0, array.length);
+            if (newSize > 1) System.arraycopy(array, 0, newArray, 0, array.length);
             newArray[newSize - 1] = element;
             return newArray;
         }
