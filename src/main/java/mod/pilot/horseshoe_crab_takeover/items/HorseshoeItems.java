@@ -29,6 +29,8 @@ public class HorseshoeItems {
             () -> new FaceDebugRenderWand(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item>  GSTAR_NODE_WAND = ITEMS.register("gstar_node_wand",
             () -> new GStarNodeGeneratorWand(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item>  GREEDY_CHUNK_READER = ITEMS.register("gchunk_reader",
+            () -> new GreedyChunkReaderWand(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

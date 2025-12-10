@@ -260,7 +260,7 @@ public class DataHelper {
             System.arraycopy(array, 0, newArray, 0, cIndex + 1);
             return newArray;
         }
-        public static <I> I[] removeAndDecrimate(I[] array, int index){
+        public static <I> I[] removeAndDecrement(I[] array, int index){
             if (index < array.length){
                 int newSize = array.length - 1;
                 I[] newArray = (I[]) new Object[newSize];

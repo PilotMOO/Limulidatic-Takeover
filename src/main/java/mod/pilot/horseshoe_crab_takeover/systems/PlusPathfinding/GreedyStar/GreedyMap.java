@@ -8,10 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 public class GreedyMap {
     public static int DEFAULT_MapExtensionRange = 4;
@@ -341,7 +339,7 @@ public class GreedyMap {
             }
             public void removeAtIndex(int index){
                 if (index == -1) return;
-                contexts = DataHelper.Arrays.removeAndDecrimate(contexts, index);
+                contexts = DataHelper.Arrays.removeAndDecrement(contexts, index);
                 size--;
             }
 

@@ -2,15 +2,13 @@ package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
 
 
 public class BitwiseDataHelper {
-    public static String parseByteToBinary(byte value){return parseByteToBinary(value, true);}
-    public static String parseByteToBinary(byte value, boolean space8){
+    //public static String parseByteToBinary(byte value){return parseByteToBinary(value, true);}
+    //We don't need a space8 option here because bytes are only 8 bits long...
+    public static String parseByteToBinary(byte value){
         String parse = Long.toBinaryString(Byte.toUnsignedLong(value));
         int length = parse.length();
         StringBuilder builder = new StringBuilder();
-        while (length++ < 8) {
-            builder.append("0");
-            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
-        }
+        while (length++ < 8) builder.append("0");
         return builder.append(parse).toString();
     }
     public static String parseIntToBinary(int value){return parseIntToBinary(value, true);}
@@ -18,22 +16,32 @@ public class BitwiseDataHelper {
         String parse = Long.toBinaryString(Integer.toUnsignedLong(value));
         int length = parse.length();
         StringBuilder builder = new StringBuilder();
-        while (length++ < 32) {
-            builder.append("0");
-            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
+        while (length++ < 32) builder.append("0");
+        builder.append(parse);
+        if (space8) {
+            //subtract 9 because length is +1 larger than the string length,
+            // and we don't want to append " " to the very last string index because
+            // that would leave one dangling whitespace
+            length -= 9;
+            for (; length > 0; length -= 8) builder.insert(length, " ");
         }
-        return builder.append(parse).toString();
+        return builder.toString();
     }
     public static String parseLongToBinary(long value){return parseLongToBinary(value, true);}
     public static String parseLongToBinary(long value, boolean space8){
         String parse = Long.toBinaryString(value);
         int length = parse.length();
         StringBuilder builder = new StringBuilder();
-        while (length++ < 64) {
-            builder.append("0");
-            if (space8 && (length + 1) % 8 == 0) builder.append(" ");
+        while (length++ < 64) builder.append("0");
+        builder.append(parse);
+        if (space8){
+            //subtract 9 because length is +1 larger than the string length,
+            // and we don't want to append " " to the very last string index because
+            // that would leave one dangling whitespace
+            length -= 9;
+            for (; length > 0; length -= 8) builder.insert(length, " ");
         }
-        return builder.append(parse).toString();
+        return builder.toString();
     }
 
     /**

@@ -190,7 +190,27 @@ public class GreedyChunk {
      * @return the long Chunk ID for the related Greedy Chunk (if present)
      */
     public static long computeCoordinatesToID(int x, int z){
-        return (x / 64L << 40) | ((z / 64L) << 16);
+        //This is really awkward to test and work on
+        // because how the fuck do you test if any value would properly compress???
+        //I also need to rework how it handles negative numbers,
+        // because right now GreedyChunk ID = 0 covers -63 to 63 (both x and z),
+        // which is 127 total blocks along one axis
+        // that's almost twice the actual amount it should have...
+        // this happens for all chunks along a given axis
+
+        boolean negX = x < 0, negZ = z < 0;
+        System.out.println("computing [" + x + ", " + z + "] to GreedyChunk id...");
+        System.out.println("Binary: x[" + BitwiseDataHelper.parseIntToBinary(x) + "], z[" + BitwiseDataHelper.parseIntToBinary(z) + "]");
+        System.out.println("Negative? x[" + negX + "] z[" + negZ + "]");
+        long xComp = x / 64L, // << 40
+                zComp = z / 64L; // << 16
+        System.out.println("X comp id: " + xComp + ", binary[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
+        System.out.println("Z comp id: " + zComp + ", binary[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+        xComp <<= 40;
+        zComp <<= 16;
+        System.out.println("X|Z binary offset x[" + BitwiseDataHelper.parseLongToBinary(xComp) + "],\n   z[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+        System.out.println("OR'd [" + BitwiseDataHelper.parseLongToBinary(xComp | zComp) + "]");
+        return xComp | zComp;
     }
 
     /**
