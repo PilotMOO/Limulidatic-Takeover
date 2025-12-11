@@ -13,15 +13,15 @@ public class GreedyChunk {
 
     public GreedyChunk(long chunkID){
         this.chunkID = chunkID;
-        int x = (int)(chunkID >>> 40) * 64;
-        int z = (int)(chunkID << 24 >>> 40) * 64;
-        //GreedyChunk ID compression removes accuracy so GreedyChunks along either axis
-        // has their relative value set to 0 by the decompressor
-        // rather than the actual -32 it needs
-        // (or the negative of 1/2 of the XZ dimensions of a GreedyChunk)
-        if (x == 0) x = -(GreedyChunkXZDimensions / 2);
-        if (z == 0) z = -(GreedyChunkXZDimensions / 2);
-        relative = new Vector2i(x, z);
+
+        int xIso = (int)(chunkID >>> 40);
+        int zIso = (int)(chunkID << 24 >>> 40);
+        int bit24 = 1 << 23;
+        boolean negX = (bit24 & xIso) != 0;
+        boolean negZ = (bit24 & zIso) != 0;
+        if (negX) xIso = (xIso & ~bit24) * -1;
+        if (negZ) zIso = (zIso & ~bit24) * -1;
+        relative = new Vector2i(xIso * 64, zIso * 64);
     }
     public final Vector2i relative;
     public final long chunkID;
@@ -199,19 +199,40 @@ public class GreedyChunk {
         // this happens for all chunks along a given axis
 
         boolean negX = x < 0, negZ = z < 0;
-        System.out.println("computing [" + x + ", " + z + "] to GreedyChunk id...");
-        System.out.println("Binary: x[" + BitwiseDataHelper.parseIntToBinary(x) + "], z[" + BitwiseDataHelper.parseIntToBinary(z) + "]");
-        System.out.println("Negative? x[" + negX + "] z[" + negZ + "]");
-        long xComp = x / 64L, // << 40
-                zComp = z / 64L; // << 16
-        System.out.println("X comp id: " + xComp + ", binary[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
-        System.out.println("Z comp id: " + zComp + ", binary[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+        long xComp = Math.abs(x) / 64L,
+                zComp = Math.abs(z) / 64L;
+        //I'm losing it
+        // ough compressing negative values is fucking annoying
+        /*if (Math.abs(xComp) >= 8388608 || Math.abs(zComp) >= 8388608){
+            throw new RuntimeException("FUCK! INVALID COMP VALUES [" + xComp + ", " + zComp + "]");
+        }*/
+        /*if (negX) xComp--;
+        if (negZ) zComp--;*/
+        System.out.println("x, z comp pre-shift [THESE VALUES ARE ABSOLUTE]: x " + xComp + ", z " + zComp);
         xComp <<= 40;
-        zComp <<= 16;
-        System.out.println("X|Z binary offset x[" + BitwiseDataHelper.parseLongToBinary(xComp) + "],\n   z[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
-        System.out.println("OR'd [" + BitwiseDataHelper.parseLongToBinary(xComp | zComp) + "]");
+        //Clear mask removes any bits after the 40th one,
+        // just in case it's negative and those are filled with 1's
+        zComp = (zComp << 16) & clearMask;
+
+        System.out.println("xComp binary[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
+        System.out.println("zComp binary[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+
+        if (negX) {
+            xComp |= finalBitMask;
+            System.out.println("x negative fix[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
+        }
+        if (negZ) {
+            zComp |= fortiethBitMask;
+            System.out.println("z negative fix[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+        }
         return xComp | zComp;
     }
+    //the FINAL bit of a 64 bit string
+    public static final long finalBitMask = -9223372036854775808L;
+    //The 40th bit of a 64 bit string
+    public static final long fortiethBitMask = 549755813888L;
+    //40th and below bits are 1, rest are 0
+    public static final long clearMask = 1099511627775L;
 
     /**
      * Creates the "minor" world coordinate from the supplied ID
