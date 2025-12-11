@@ -22,6 +22,10 @@ public class GreedyChunk {
         if (negX) xIso = (xIso & ~bit24) * -1;
         if (negZ) zIso = (zIso & ~bit24) * -1;
         relative = new Vector2i(xIso * 64, zIso * 64);
+
+        //ToDo:
+        // NOTE! The relative value MIGHT be offset incorrectly for negative values!
+        // make sure to check and fix that
     }
     public final Vector2i relative;
     public final long chunkID;
