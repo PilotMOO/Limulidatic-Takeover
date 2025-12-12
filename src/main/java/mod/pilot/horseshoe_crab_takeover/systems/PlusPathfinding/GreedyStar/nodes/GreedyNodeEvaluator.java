@@ -79,6 +79,7 @@ public abstract class GreedyNodeEvaluator {
         this.curSection = getSection(curChunk, worldY);
     }
     public LevelChunk getChunk(int relativeX, int relativeZ){
+        //ToDo: see why this is broken and isnt working and is cringe
         int arrayIndex = (relativeX * 4) + relativeZ;
         System.out.println("Trying to get chunk index ");
         LevelChunk chunk = ChunkArray2d[arrayIndex];
@@ -86,7 +87,7 @@ public abstract class GreedyNodeEvaluator {
             int chunkX = greedyChunk.relative.x + (relativeX * 16),
                     chunkZ = greedyChunk.relative.y + (relativeZ * 16);
             chunk = ChunkArray2d[arrayIndex] =
-                    (LevelChunk)level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
+                    (LevelChunk)level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
         }
         return chunk;
     }

@@ -38,10 +38,11 @@ public class Horseshoe_Crab_Takeover
 
         GreedyFileManager.setupGreedyTags(); //Temp for testing
 
-        Random random = new Random();
+        //Debugging GreedyChunk ID system
+        /*Random random = new Random();
         int x, z;
         //x = -3287; z = -18820;
-        for (int i = 0; i < 101; i++) {
+        for (int i = 0; i < 100; i++) {
             System.out.println();
             System.out.println();
             System.out.println("GEN[" + i + "]");
@@ -56,27 +57,29 @@ public class Horseshoe_Crab_Takeover
             int bit24 = 1 << 23;
             boolean negX = (bit24 & xIso) != 0;
             boolean negZ = (bit24 & zIso) != 0;
+            int xDecomp, zDecomp;
             if (negX) {
                 xIso = (xIso & ~bit24) * -1;
+                xDecomp = (xIso * 64) - 64;
                 System.out.println("iso X negative fix: " + xIso + ", binary[" + BitwiseDataHelper.parseIntToBinary(xIso) + "]");
-            }
+            } else xDecomp = xIso * 64;
             if (negZ) {
                 zIso = (zIso & ~bit24) * -1;
+                zDecomp = (zIso * 64) - 64;
                 System.out.println("iso Z negative fix: " + zIso + ", binary[" + BitwiseDataHelper.parseIntToBinary(zIso) + "]");
-            }
-            int xDecomp = xIso * 64;
-            int zDecomp = zIso * 64;
+            } else zDecomp = zIso * 64;
             System.out.println("X, Z decompressed: [" + xDecomp + ", " + zDecomp + "]");
             int xBallpark = x - xDecomp;
             int zBallpark = z - zDecomp;
             System.out.println("Ballparks: x[" + xBallpark + "], z[" + zBallpark + "]");
-            boolean xAccurate = (Math.abs(xBallpark) < 64),
-                    zAccurate = (Math.abs(zBallpark) < 64);
+            boolean xAccurate = (Math.abs(xBallpark) <= 64), //I don't know if right on 64
+                    zAccurate = (Math.abs(zBallpark) <= 64); // is ok or not...
+            //I think it's ok...?
             System.out.println("Accurate? x[" + xAccurate + "], z[" + zAccurate + "]");
             if (xAccurate && zAccurate) continue;
             else throw new RuntimeException("FUCK, FAILED TO COMPRESS AND DECOMPRESS [" + x + ", " + z + "]");
         }
-        System.out.println("We balling");
+        System.out.println("We balling");*/
 
 
         //Left-over debugging code for testing various bitwise helpers

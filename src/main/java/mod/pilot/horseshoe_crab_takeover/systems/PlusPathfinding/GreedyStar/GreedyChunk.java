@@ -14,18 +14,47 @@ public class GreedyChunk {
     public GreedyChunk(long chunkID){
         this.chunkID = chunkID;
 
-        int xIso = (int)(chunkID >>> 40);
-        int zIso = (int)(chunkID << 24 >>> 40);
+        //Isolate the X and Z values from their designated 24 bit section
+        int xIso = (int)(chunkID >>> 40); //X is in the last 24
+        int zIso = (int)(chunkID << 24 >>> 40); //and Z in the next 24
+        // Might hardcode this later, it's the 24th bit =1 while the rest is 0 for masking
         int bit24 = 1 << 23;
-        boolean negX = (bit24 & xIso) != 0;
-        boolean negZ = (bit24 & zIso) != 0;
-        if (negX) xIso = (xIso & ~bit24) * -1;
-        if (negZ) zIso = (zIso & ~bit24) * -1;
-        relative = new Vector2i(xIso * 64, zIso * 64);
+        //The 24th bit in the two isolated sections contains the negative flag
+        // (the same job that the last bit in a signed binary number holds)
+        // Negative values need special attention to decompress,
+        // so these flags help with that
+        boolean negX = (bit24 & xIso) != 0; /**/
+        boolean negZ = (bit24 & zIso) != 0; /**/
+        //Decompress the X and Z values--
+        //If negative, we need to default the 24th bit [xIso & ~bit24]
+        // (contained the negative flag) and then flip to negative [* -1]
+        // (values are absoluted before compression, this undoes that step)
+        /*See last comment block for why we are subtracting 1*/
+        if (negX) xIso = ((xIso & ~bit24) * -1) - 1;
+        if (negZ) zIso = ((zIso & ~bit24) * -1) - 1;
+        /**/
+        //Finally take the isolated positional values and multiply by the chunk size
+        // to undo the initial division
+        relative = new Vector2i(
+                xIso * GreedyChunkXZDimensions,
+                zIso * GreedyChunkXZDimensions);
 
-        //ToDo:
-        // NOTE! The relative value MIGHT be offset incorrectly for negative values!
-        // make sure to check and fix that
+        //Make sure to subtract 1 from the result of
+        // the negative-corrected isolated position [xIso, zIso]
+        // IF the resulting relative is negative!
+        // Because division is zero-oriented
+        // (dividing numbers prioritize 0 rather than the lowest value),
+        // we need to offset the resulting values by -1 GChunk's
+        // otherwise it would return the relative position of the GChunk
+        // relative to this chunk by +1 on either axis that is negative
+        //Our logic assumes the relative position is the minor of the Chunk (lowest XZ values)
+        // rather than closest to zero, so we have to correct this discrepancy
+        // otherwise the other logic will meddle with incorrect positional values
+
+        //Yes this is wayy too much work just to avoid having to
+        // store 2 integer positions for every object.
+        //Hey, those 64 total bits add up over hundreds of objects!
+        // (i think...)
     }
     public final Vector2i relative;
     public final long chunkID;
@@ -189,11 +218,36 @@ public class GreedyChunk {
     }
     /**
      * Computes the map ID of the relevant Greedy Chunk from the given X and Z coordinates
-     * @param x the X coordinate in-world to compute the related GC ID from (the last 32 bits)
-     * @param z the Z coordinate in-world to compute the related GC ID from (the first 32 bits)
+     * <p>
+     *
+     * </p>
+     *     NOTE! This compression system can only handle X and Z values between
+     *     {@code -2^23 * 64} and {@code 2^23 * 64}, little over half a billion
+     *     (roughly, I haven't bothered to find the specific values where it breaks...)
+     *     and WILL return invalid ID's if incorrect values are inputted.
+     *     This isn't that much of a concern though,
+     *     vanilla worlds only extend like, 30 million blocks
+     *     so unless modded otherwise, this system should work fine 100% of the time :)
+     * <p>
+     *
+     * </p><p>
+     *
+     * </p>
+     * The code is littered with a bunch of old commented out shit and other junk.
+     * The actual code isn't very complex, but it's a mess of comments that I don't
+     * want to remove for some reason. idk
+     * @param x the X coordinate in-world to compute the related GC ID from (the last 24 bits)
+     * @param z the Z coordinate in-world to compute the related GC ID from (the 24 bits after the first 16 bits)
      * @return the long Chunk ID for the related Greedy Chunk (if present)
      */
     public static long computeCoordinatesToID(int x, int z){
+        //536870912 to -536870912 (or somewhere around that point...) is the max valid value
+        // that this system can properly compress. Any other value can't fit in the
+        // allocated 24 bits per horizontal axis per ID.
+        //Vanilla MC worlds only span like negative 30 million to positive 30 million
+        // so this shouldn't be any real issue if the world boarder isn't manually
+        // extended with mods.
+        if (Math.abs(x) > 536870912 || Math.abs(z) > 536870912) return -1L;
         //This is really awkward to test and work on
         // because how the fuck do you test if any value would properly compress???
         //I also need to rework how it handles negative numbers,
@@ -201,33 +255,41 @@ public class GreedyChunk {
         // which is 127 total blocks along one axis
         // that's almost twice the actual amount it should have...
         // this happens for all chunks along a given axis
+        //^^^^ this is all fixed now, the Constructor explains the decompression
 
         boolean negX = x < 0, negZ = z < 0;
+        //Normally I would want to use the static chunk size object
+        // but that's stored as a byte and we need a long here...
         long xComp = Math.abs(x) / 64L,
                 zComp = Math.abs(z) / 64L;
         //I'm losing it
+        // I dont feel like removing these comments from prior attempts
         // ough compressing negative values is fucking annoying
         /*if (Math.abs(xComp) >= 8388608 || Math.abs(zComp) >= 8388608){
             throw new RuntimeException("FUCK! INVALID COMP VALUES [" + xComp + ", " + zComp + "]");
         }*/
         /*if (negX) xComp--;
-        if (negZ) zComp--;*/
-        System.out.println("x, z comp pre-shift [THESE VALUES ARE ABSOLUTE]: x " + xComp + ", z " + zComp);
+        if (negZ) zComp--;*/ //This was the right idea to fix a prior issue
+        // but didn't quite work iirc
+
+        //System.out.println("x, z comp pre-shift [THESE VALUES ARE ABSOLUTE]: x " + xComp + ", z " + zComp);
+        //I should clean up this stuff, no real need to keep this on its own line...
         xComp <<= 40;
         //Clear mask removes any bits after the 40th one,
         // just in case it's negative and those are filled with 1's
         zComp = (zComp << 16) & clearMask;
 
-        System.out.println("xComp binary[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
-        System.out.println("zComp binary[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+        //Debugging stuff...
+        /*System.out.println("xComp binary[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
+        System.out.println("zComp binary[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");*/
 
         if (negX) {
             xComp |= finalBitMask;
-            System.out.println("x negative fix[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
+            //System.out.println("x negative fix[" + BitwiseDataHelper.parseLongToBinary(xComp) + "]");
         }
         if (negZ) {
             zComp |= fortiethBitMask;
-            System.out.println("z negative fix[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
+            //System.out.println("z negative fix[" + BitwiseDataHelper.parseLongToBinary(zComp) + "]");
         }
         return xComp | zComp;
     }
