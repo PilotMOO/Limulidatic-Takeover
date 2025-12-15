@@ -11,7 +11,8 @@ import org.joml.Vector3i;
 public class GreedyChunk {
     public static byte GreedyChunkXZDimensions = 64;
 
-    public GreedyChunk(long chunkID){
+    public GreedyChunk(long chunkID){this(chunkID, new GreedyMap[0]);}
+    public GreedyChunk(long chunkID, GreedyMap... maps){
         this.chunkID = chunkID;
 
         //Isolate the X and Z values from their designated 24 bit section
@@ -55,18 +56,20 @@ public class GreedyChunk {
         // store 2 integer positions for every object.
         //Hey, those 64 total bits add up over hundreds of objects!
         // (i think...)
+
+        this.maps = maps;
     }
     public final Vector2i relative;
     public final long chunkID;
 
     public GreedyMap[] maps;
     public void addMap(GreedyMap map){
-        maps = DataHelper.Arrays.expandAndAdd(maps, map);
-        /*int newSize = maps.length + 1;
+        //maps = DataHelper.Arrays.expandAndAdd(maps, map);
+        int newSize = maps.length + 1;
         GreedyMap[] newMaps = new GreedyMap[newSize];
-        System.arraycopy(maps, 0, newMaps, 0, newSize);
+        if (newSize > 1) System.arraycopy(maps, 0, newMaps, 0, newSize);
         newMaps[newSize - 1] = map;
-        maps = newMaps;*/
+        maps = newMaps;
     }
     public void removeMap(int index){
         int newSize = maps.length - 1;
@@ -122,7 +125,7 @@ public class GreedyChunk {
     /**
      * Looks for the closest GreedyMap within this GChunk that matches the given [XYZ] coordinates
      * Behaviour changes based off of the 4th argument:
-     * <p>{@code InBounds}: The target GreedyMap's {@link GreedyMap#MapBound}
+     * <p>{@code InBounds}: The target GreedyMap's {@link GreedyMap#mapBounds}
      * MUST contain the supplied coordinate. Strictest argument type.</p>
      * {@code MapExtension}: Same as {@code InBounds} but it adds the Map's
      * {@link GreedyMap#MapExtensionRange} to the bounds.
@@ -141,12 +144,12 @@ public class GreedyChunk {
         if (maps.length == 0) return null;
         return switch(searchType){
             case InBounds -> {
-                for (GreedyMap gMap : maps) if (gMap.MapBound.contains(x,y,z)) yield gMap;
+                for (GreedyMap gMap : maps) if (gMap.getBounds().contains(x,y,z)) yield gMap;
                 yield null;
             }
             case MapExtension -> {
                 for (GreedyMap gMap : maps) {
-                    if (gMap.MapBound.containsLargePoint(x,y,z, gMap.MapExtensionRange * 2)){
+                    if (gMap.getBounds().containsLargePoint(x,y,z, gMap.MapExtensionRange * 2)){
                         yield gMap;
                     }
                 }
@@ -154,7 +157,7 @@ public class GreedyChunk {
             }
             case MapExtensionDefault -> {
                 for (GreedyMap gMap : maps) {
-                    if (gMap.MapBound.containsLargePoint(x,y,z, GreedyMap.DEFAULT_MapExtensionRange * 2)){
+                    if (gMap.getBounds().containsLargePoint(x,y,z, GreedyMap.DEFAULT_MapExtensionRange * 2)){
                         yield gMap;
                     }
                 }
@@ -180,13 +183,13 @@ public class GreedyChunk {
         else return switch (searchType){
             case InBounds -> {
                 for (GreedyMap gMap : maps){
-                    if (gMap.MapBound.intersects(localizedQSpace)) yield gMap;
+                    if (gMap.getBounds().intersects(localizedQSpace)) yield gMap;
                 }
                 yield null;
             }
             case MapExtension -> {
                 for (GreedyMap gMap : maps){
-                    if (gMap.MapBound.intersectInflated(localizedQSpace, gMap.MapExtensionRange * 2)){
+                    if (gMap.getBounds().intersectInflated(localizedQSpace, gMap.MapExtensionRange * 2)){
                         yield gMap;
                     }
                 }
@@ -194,7 +197,7 @@ public class GreedyChunk {
             }
             case MapExtensionDefault -> {
                 for (GreedyMap gMap : maps){
-                    if (gMap.MapBound.intersectInflated(localizedQSpace, GreedyMap.DEFAULT_MapExtensionRange)){
+                    if (gMap.getBounds().intersectInflated(localizedQSpace, GreedyMap.DEFAULT_MapExtensionRange)){
                         yield gMap;
                     }
                 }

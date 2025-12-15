@@ -57,22 +57,27 @@ public class GreedyMap {
         }
     }
 
-    public QuadSpace MapBound;
+    public boolean recomputeBounds;
+    public QuadSpace mapBounds;
+    public QuadSpace getBounds(){
+        if (recomputeBounds) computeBound();
+        return mapBounds;
+    }
     /**
      * Creates the {@link QuadSpace} bound of this Greedy Map
      * by finding the extremes of all the Greedy Nodes
      */
     public void computeBound(){
         int nodeCount = nodes.size; //How many nodes we are working with
-        if (nodeCount == 0) MapBound = QuadSpace.empty(); //If we don't have any nodes, the bounds are invalid
+        if (nodeCount == 0) mapBounds = QuadSpace.empty(); //If we don't have any nodes, the bounds are invalid
         else if (nodeCount == 1){
             //If we only have 1 node, create a QuadSpace bound with the same dimensions as the node
-            MapBound = nodes.getNode(0).buildEquvilantQuadSpace();
+            mapBounds = nodes.getNode(0).buildEquvilantQuadSpace();
         }
         else if (nodeCount == 2) {
             //If we have two nodes, find the extremes
             GreedyNode node1 = nodes.getNode(0), node2 = nodes.getNode(1);
-            MapBound = new QuadSpace(
+            mapBounds = new QuadSpace(
                     Math.min(node1.minorX, node2.minorX),
                     Math.min(node1.minorY, node2.minorY),
                     Math.min(node1.minorZ, node2.minorZ),
@@ -95,9 +100,10 @@ public class GreedyMap {
                 zMajor = Math.max(zMajor, node.minorZ + node.sizeZ); /**/
             }
             //Combine into a QuadSpace of the extremes
-            MapBound = new QuadSpace(xCorner, yCorner, zCorner,
+            mapBounds = new QuadSpace(xCorner, yCorner, zCorner,
                     xMajor - xCorner, yMajor - yCorner, zMajor - zCorner);
         }
+        recomputeBounds = false;
     }
 
     public MapContext.Container nodes;
@@ -105,6 +111,7 @@ public class GreedyMap {
         gNode.assignID(newNodeID());
         MapContext mapC = wrap(gNode);
         nodes.addContext(mapC);
+        recomputeBounds = true;
         //ToDo: Add system to evaluate all other contained GNodes to see if they are
         // "sisters" to the newly added GNode, then update the MapContexts as needed
         // (will need to add a feature to QuadSpaces to be able to look for touching edges or faces...)
@@ -119,11 +126,16 @@ public class GreedyMap {
             }
         }
         if (flag) nodes.removeAtIndex(index);
+        recomputeBounds = true;
     }
-    public void removeNode(int index){ nodes.removeAtIndex(index); }
+    public void removeNode(int index){
+        nodes.removeAtIndex(index);
+        recomputeBounds = true;
+    }
     public void removeNode(MapContext context){ removeNode(context, false); }
     public void removeNode(MapContext context, boolean fuzzy){
         nodes.removeContext(context, fuzzy);
+        recomputeBounds = true;
     }
     public @Nullable MapContext contextFromID(byte nodeID){
         for (@NotNull Iterator<MapContext> it = nodes.contextIterator(); it.hasNext(); ) {
@@ -361,41 +373,47 @@ public class GreedyMap {
                 this.size = newSize;
             }
 
-            private final NodeIterator nIterator = new NodeIterator();
+            //private final NodeIterator nIterator = new NodeIterator();
             @Override
             public @NotNull Iterator<GreedyNode> iterator() {
-                return nIterator.reset();
+                return new NodeIterator();
             }
-            private final ContextIterator cIterator = new ContextIterator();
+            //private final ContextIterator cIterator = new ContextIterator();
             public @NotNull Iterator<MapContext> contextIterator() {
-                return cIterator.reset();
+                return new ContextIterator();
             }
 
             private class NodeIterator implements Iterator<GreedyNode>{
-                public NodeIterator(){reset();}
-                public NodeIterator reset(){
-                    wrapper = contexts;
-                    count = wrapper.length;
+                public NodeIterator(){
+                    elements = contexts;
+                    count = elements.length;
+                    index = 0;
+                }
+                /*public NodeIterator reset(){
+                    objs = contexts;
+                    count = objs.length;
                     index = 0;
                     return this;
-                }
-                public MapContext[] wrapper;
+                }*/
+                public MapContext[] elements;
                 private int count;
                 private int index;
 
                 @Override public boolean hasNext() {return index + 1 < count;}
                 @Override public GreedyNode next() {
-                    return wrapper[++index].node;
+                    return elements[++index].node;
                 }
             }
             private class ContextIterator implements Iterator<MapContext>{
-                public ContextIterator(){reset();}
-                public ContextIterator reset(){
+                public ContextIterator(){
                     elements = contexts;
                     count = elements.length;
                     index = 0;
-                    return this;
                 }
+                /*public ContextIterator reset(){
+
+                    return this;
+                }*/
                 public MapContext[] elements;
                 private int count;
                 private int index;

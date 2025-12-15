@@ -29,6 +29,8 @@ public class GStarNodeGeneratorWand extends Item {
         evaluator = new GreedyNodeEvaluator() {
             @Override
             protected boolean evaluatePosition(int contextX, int contextY, int contextZ) {
+                System.out.println("Evaluating at coords ["
+                        + contextX + ", " + contextY + ", " + contextZ +"]");
                 BlockState bState = curSection.getBlockState(contextX, contextY, contextZ);
                 if (!bState.isAir()) return false;
                 BlockState bLow;
@@ -66,12 +68,14 @@ public class GStarNodeGeneratorWand extends Item {
 
         Level level;
         if ((level = context.getLevel()).isClientSide()) return super.useOn(context);
+
         BlockPos bPos = context.getClickedPos().relative(context.getClickedFace());
         GreedyChunk gChunk = GreedyWorld.WORLD_DEFAULT()
                 .retrieveFromWorldCoordinates(bPos.getX(), bPos.getZ());
         evaluator.setupGChunkEvaluation(level, gChunk);
         gNode = evaluator.buildNode(bPos.getX(), bPos.getY(), bPos.getZ(),
                 false, false);
+        GStarNodeGeneratorWand.gChunk = evaluator.greedyChunk;
         player.displayClientMessage(Component.literal("node at " + bPos), false);
         evaluator.logger.printAll();
         return InteractionResult.SUCCESS;
@@ -114,13 +118,17 @@ public class GStarNodeGeneratorWand extends Item {
             player.displayClientMessage(Component.literal("Can't render/fill GreedyNode, it doesn't exist yet!"), false);
         } else {
             if (player.isSecondaryUseActive()) {
+                //This branch doesnt work
+                //ToDo: figure out why this doesnt work, probably debug
+                // the space iterators
+                player.displayClientMessage(Component.literal("Filling..."), true);
                 for (BlockPos bPos : gNode.getBlockPosIterator(true)){
                     level.setBlock(bPos, Blocks.GLASS.defaultBlockState(), 3);
-                    player.displayClientMessage(Component.literal("Filling..."), true);
                 }
                 minor = major = null;
             } else {
-                minor = gNode.minor(); major = gNode.major();
+                minor = gNode.minor().add(gChunk.relative.x, 0, gChunk.relative.y);
+                major = gNode.major().add(gChunk.relative.x, 0, gChunk.relative.y);
                 major.add(1, 1, 1); //Just for rendering
                 player.displayClientMessage(Component.literal("Rendering corners..."), true);
             }
@@ -129,6 +137,7 @@ public class GStarNodeGeneratorWand extends Item {
     }
 
     private static GreedyNode gNode;
+    private static GreedyChunk gChunk;
     private static Vector3i minor, major;
 
     private static GreedyNodeEvaluator evaluator;
