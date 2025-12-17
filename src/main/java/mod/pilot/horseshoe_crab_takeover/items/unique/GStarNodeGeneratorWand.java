@@ -77,6 +77,7 @@ public class GStarNodeGeneratorWand extends Item {
                 false, false);
         GStarNodeGeneratorWand.gChunk = evaluator.greedyChunk;
         player.displayClientMessage(Component.literal("node at " + bPos), false);
+        System.out.println("Created node " +  gNode);
         evaluator.logger.printAll();
         return InteractionResult.SUCCESS;
     }
@@ -118,9 +119,10 @@ public class GStarNodeGeneratorWand extends Item {
             player.displayClientMessage(Component.literal("Can't render/fill GreedyNode, it doesn't exist yet!"), false);
         } else {
             if (player.isSecondaryUseActive()) {
-                //This branch doesnt work
-                //ToDo: figure out why this doesnt work, probably debug
-                // the space iterators
+                //Debugged iterator and I think it works, but
+                // this part still seems buggy/broken
+                //debug it more in a bit
+                //ToDo: see above
                 player.displayClientMessage(Component.literal("Filling..."), true);
                 for (BlockPos bPos : gNode.getBlockPosIterator(true)){
                     level.setBlock(bPos, Blocks.GLASS.defaultBlockState(), 3);

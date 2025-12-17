@@ -31,6 +31,8 @@ public class HorseshoeItems {
             () -> new GStarNodeGeneratorWand(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item>  GREEDY_CHUNK_READER = ITEMS.register("gchunk_reader",
             () -> new GreedyChunkReaderWand(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item>  QUADSPACE_FILL_WAND = ITEMS.register("quadspace_wand",
+            () -> new QuadSpaceFillWand(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

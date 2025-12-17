@@ -106,6 +106,10 @@ public class QuadSpace{
     public boolean invalid(){
         return (sizeX | sizeY | sizeZ) < 0;
     }
+    public boolean has3dSpace(){
+        //If any of the sizes are <= 0, the QuadSpace does not contain any 3d space
+        return sizeX > 0 && sizeY > 0 && sizeZ > 0;
+    }
     /**
      * Returns a "major" coordinate along any of the 3 axis (interchangeable)
      * @param x Whether the returned coordinate is a major along the X axis
@@ -137,6 +141,12 @@ public class QuadSpace{
     public boolean contains(Vector3i point){return contains(point.x, point.y, point.z);}
     public boolean contains(BlockPos point){return contains(point.getX(), point.getY(), point.getZ());}
     public boolean contains(int x, int y, int z){
+        if (invalid()) return false;
+        return x >= minorX && (x - minorX) <= sizeX
+                && y >= minorY && (y - minorY) <= sizeY
+                && z >= minorZ && (z - minorZ) <= sizeZ;
+    }
+    public boolean contains(double x, double y, double z){
         if (invalid()) return false;
         return x >= minorX && (x - minorX) <= sizeX
                 && y >= minorY && (y - minorY) <= sizeY
@@ -186,6 +196,113 @@ public class QuadSpace{
                 && z >= minorZ - pointHalf && z <= major.z + pointHalf;
     }
 
+    /**
+     * Returns the distance of the given coordinate to the closest edge of the QuadSpace.
+     * If the coordinate is within the QuadSpace
+     * (so that {@link QuadSpace#contains(double, double, double)} returns true)
+     * then the distance is 0.
+     * @param x the X coordinate to evaluate
+     * @param y the Y coordinate to evaluate
+     * @param z the Z coordinate to evaluate
+     * @return the distance to the closest coordinate within the QuadSpace, NOT the center.
+     * Coordinates within the bounds of the QuadSpace
+     * (satisfies {@link QuadSpace#contains(double, double, double)})
+     * will return 0. If the QuadSpace is invalid, distance is -1
+     */
+    public double distanceToQuadSpace(double x, double y, double z){
+        //Invalid QuadSpaces aren't, well... valid.
+        if (invalid()) return -1;
+        //If the point is within the bounds of the QuadSpace
+        // the distance is zero
+        if (contains(x, y, z)) return 0;
+
+        //Is the X|Y|Z position below the minor?
+        boolean subX = x < minorX, subY = y < minorY, subZ = z < minorZ;
+        //If they are all below, return the distance to the minor
+        if (subX && subY && subZ) return distanceMinor(x, y, z);
+        //Computing major coordinates...
+        int majorX = minorX + sizeX,
+                majorY = minorY + sizeY,
+                majorZ = minorZ + sizeZ;
+        //Is the X|Y|Z position above the major?
+        boolean abvX = x > majorX, abvY = y > majorY, abvZ = x > majorZ;
+        //If they are all above, return the distance to the major
+        if (abvX && abvY && abvZ) return distanceMajor(x, y, z);
+        //Is the X|Y|Z coordinate in between the minor and major?
+        // (At least one of these will be false, because if they are all true then
+        // contains(x, y, z) would have returned true)
+        boolean btwnX = !(subX || abvX),
+                btwnY = !(subY || abvY),
+                btwnZ = !(subZ || abvZ);
+
+        //the square distance from the X coordinate
+        // to the most relevant QuadSpace coordinate
+        double distX, distY, distZ;
+        //If the X value is between the minor and major, then the distance here is zero
+        if (btwnX) distX = 0;
+        else{
+            //Otherwise, decide if the difference is between the minor or major
+            // depending on which extreme it is on (assume abv is true if sub is false)
+            // (intermediate step)
+            double interX = x - (subX ? minorX : majorX);
+            distX = interX * interX; //Square it, that's our distance
+        }
+        //Repeat above but for Y and Z
+        if (btwnY) distY = 0;
+        else{
+            double interY = y - (subY ? minorY : majorY);
+            distY = interY * interY;
+        }
+        if (btwnZ) distZ = 0;
+        else{
+            double interZ = z - (subZ ? minorZ : majorZ);
+            distZ = interZ * interZ;
+        }
+        //Return the square root of all 3 squares added
+        return Math.sqrt(distX + distY + distZ);
+    }
+
+    /**
+     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
+     * with the first coordinate being the minor of this QuadSpace
+     * @param x X value of the second coordinate
+     * @param y Y value of the second coordinate
+     * @param z Z value of the second coordinate
+     * @return The distance from the coordinate to the minor of this QuadSpace
+     */
+    public double distanceMinor(double x, double y, double z){
+        return distance(minorX, minorY, minorZ, x, y, z);
+    }
+    /**
+     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
+     * with the first coordinate being the major of this QuadSpace
+     * @param x X value of the second coordinate
+     * @param y Y value of the second coordinate
+     * @param z Z value of the second coordinate
+     * @return The distance from the coordinate to the major of this QuadSpace
+     */
+    public double distanceMajor(double x, double y, double z){
+        return distance(minorX + sizeX, minorY + sizeY, minorZ + sizeZ, x, y, z);
+    }
+
+    /**
+     * Returns the distance between two coordinates.
+     * @param x1 X value of the first coordinate
+     * @param y1 Y value of the first coordinate
+     * @param z1 Z value of the first coordinate
+     * @param x2 X value of the second coordinate
+     * @param y2 Y value of the second coordinate
+     * @param z2 Z value of the second coordinate
+     * @return the distance between the two points
+     */
+    public static double distance(double x1, double y1, double z1,
+                                  double x2, double y2, double z2){
+        double xD = x2 - x1, yD = y2 - y1, zD = z2 - z1;
+        return Math.sqrt((xD * xD) +
+                        (yD * yD) +
+                        (zD * zD));
+    }
+
     public Vector3iSpaceIterator getVector3iIterator(){
         return new Vector3iSpaceIterator();
     }
@@ -205,9 +322,9 @@ public class QuadSpace{
      * I.E:
      * <pre>
      * {@code
-     * for (int x = 0; x <= sizeX; x++){
-     *     for (int y = 0; y <= sizeY; y++){
-     *         for (int z = 0; z <= sizeZ; z++){
+     * for (int x = 0; x < sizeX; x++){
+     *     for (int y = 0; y < sizeY; y++){
+     *         for (int z = 0; z < sizeZ; z++){
      *             return new YourVector(minorX + x, minorY + y, minorZ + z);
      *         }
      *     }
@@ -218,21 +335,28 @@ public class QuadSpace{
      *           (see {@code YourVector} in equivalent code)
      */
     private abstract class SpaceIterator<I> implements Iterable<I>{
+        private SpaceIterator(){valid = has3dSpace();}
         public int positionX = 0, positionY = 0, positionZ = 0;
+        protected boolean minorFlag = true;
+        protected final boolean valid;
 
         protected abstract I getNext();
         public I step(){
-            boolean xThreshold = positionX > sizeX,
-                    yThreshold = positionY > sizeY,
-                    zThreshold = positionZ > sizeZ;
+            if (!valid) return null;
+            boolean xThreshold = positionX >= (sizeX - 1),
+                    yThreshold = positionY >= (sizeY - 1),
+                    zThreshold = positionZ >= (sizeZ - 1);
 
-            if (xThreshold || yThreshold || zThreshold){
-                if (!zThreshold) positionZ++;
-                else if (!yThreshold) {positionZ = 0; positionY++;}
-                else {positionZ = positionY = 0; positionX++;}
+            if (minorFlag && !invalid()){
+                minorFlag = false;
                 return getNext();
             }
-            return null;
+            if (xThreshold && yThreshold && zThreshold) return null;
+
+            if (!zThreshold) positionZ++;
+            else if (!yThreshold) {positionZ = 0; positionY++;}
+            else {positionZ = positionY = 0; positionX++;}
+            return getNext();
         }
 
         @Override
@@ -247,7 +371,7 @@ public class QuadSpace{
     }
 
     public class Vector3iSpaceIterator extends SpaceIterator<Vector3i> {
-        private Vector3iSpaceIterator(){}
+        private Vector3iSpaceIterator(){super();}
         @Override
         protected Vector3i getNext() {
             return new Vector3i(minorX + positionX,
@@ -256,7 +380,9 @@ public class QuadSpace{
         }
     }
     public class Vec3SpaceIterator extends SpaceIterator<Vec3> {
-        private Vec3SpaceIterator(boolean centerPosition){this.center = centerPosition;}
+        private Vec3SpaceIterator(boolean centerPosition){
+            super();
+            this.center = centerPosition;}
         public boolean center;
         @Override protected Vec3 getNext() {
             double localization = center ? .5 : 0;
@@ -267,6 +393,7 @@ public class QuadSpace{
     }
 
     public class BlockPosSpaceIterator extends SpaceIterator<BlockPos> {
+        private BlockPosSpaceIterator(){super();}
         @Override protected BlockPos getNext() {
             return new BlockPos(minorX + positionX,
                     minorY + positionY,
@@ -275,6 +402,7 @@ public class QuadSpace{
     }
     public class MutableBlockPosSpaceIterator extends BlockPosSpaceIterator{
         private MutableBlockPosSpaceIterator(){
+            super();
             mBPos = new BlockPos.MutableBlockPos(minorX, minorY, minorZ);
         }
         public final BlockPos.MutableBlockPos mBPos;
@@ -286,37 +414,46 @@ public class QuadSpace{
 
         @Override
         public BlockPos step() {
-            boolean xThreshold = positionX > sizeX,
-                    yThreshold = positionY > sizeY,
-                    zThreshold = positionZ > sizeZ;
-
-            if (xThreshold || yThreshold || zThreshold){
-                if (!zThreshold){
-                    mBPos.move(0, 0, 1);
-                    positionZ++;
-                }
-                else if (!yThreshold){
-                    mBPos.move(0, 1, -sizeZ);
-                    positionZ = 0; positionY++;
-                }
-                else{
-                    mBPos.move(1, -sizeY, -sizeZ);
-                    positionZ = positionY = 0;
-                    positionX++;
-                }
+            if (!valid){
+                System.out.println("INVALID QUADSPACE, FUCK YOU");
+                return null;
+            }
+            if (minorFlag){
+                minorFlag = false;
                 return getNext();
             }
-            return null;
+
+            boolean xThreshold = positionX >= (sizeX - 1),
+                    yThreshold = positionY >= (sizeY - 1),
+                    zThreshold = positionZ >= (sizeZ - 1);
+
+            if (xThreshold && yThreshold && zThreshold) return null;
+
+            if (!zThreshold){
+                mBPos.move(0, 0, 1);
+                positionZ++;
+            }
+            else if (!yThreshold){
+                mBPos.move(0, 1, -(sizeZ - 1));
+                positionZ = 0;
+                positionY++;
+            }
+            else{
+                mBPos.move(1, -(sizeY - 1), -(sizeZ - 1));
+                positionZ = positionY = 0;
+                positionX++;
+            }
+            return getNext();
         }
     }
 
     @Override
     public String toString() {
-        return "QuadSpace[" +
+        return "QuadSpace{" +
                 "minor=[" + minorX + ", " + minorY + ", " + minorZ +
                 "], sizeX=" + sizeX +
                 ", sizeY=" + sizeY +
                 ", sizeZ=" + sizeZ +
-                ']';
+                '}';
     }
 }
