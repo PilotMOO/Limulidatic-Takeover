@@ -1,6 +1,5 @@
 package mod.pilot.horseshoe_crab_takeover.items.unique;
 
-import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.events.HorseshoeHandlerEvents;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.DynamicBitPackage3d;
@@ -19,8 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import org.joml.Vector3i;
 
-public class
-BitPackageTestWand extends Item {
+public class BitPackageTestWand extends Item {
     public BitPackageTestWand(Properties pProperties) {
         super(pProperties);
         bitPackage = new DynamicBitPackage3d<>(3, 10, 10, 10,

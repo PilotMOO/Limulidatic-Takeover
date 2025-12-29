@@ -83,34 +83,6 @@ public class GStarNodeGeneratorWand extends Item {
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, Level level, Entity entity,
-                              int slot, boolean selected) {
-        if (level.isClientSide || minor == null || major == null) return;
-        ServerLevel server = (ServerLevel) level;
-
-        server.sendParticles(ParticleTypes.ANGRY_VILLAGER, minor.x, minor.y, minor.z,
-                3, 0, 0, 0, 0);
-
-        server.sendParticles(ParticleTypes.CRIT, major.x, minor.y, minor.z,
-                3, 0, 0, 0, 0);
-        server.sendParticles(ParticleTypes.CRIT, minor.x, minor.y, major.z,
-                3, 0, 0, 0, 0);
-        server.sendParticles(ParticleTypes.CRIT, major.x, minor.y, major.z,
-                3, 0, 0, 0, 0);
-
-        server.sendParticles(ParticleTypes.CRIT, minor.x, major.y, minor.z,
-                3, 0, 0, 0, 0);
-        server.sendParticles(ParticleTypes.CRIT, major.x, major.y, minor.z,
-                3, 0, 0, 0, 0);
-        server.sendParticles(ParticleTypes.CRIT, minor.x, major.y, major.z,
-                3, 0, 0, 0, 0);
-        server.sendParticles(ParticleTypes.ANGRY_VILLAGER, major.x, major.y, major.z,
-                3, 0, 0, 0, 0);
-
-
-    }
-
-    @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         player.getCooldowns().addCooldown(this, 10);
         if (level.isClientSide) return super.use(level, player, hand);
@@ -118,21 +90,10 @@ public class GStarNodeGeneratorWand extends Item {
         if (gNode == null){
             player.displayClientMessage(Component.literal("Can't render/fill GreedyNode, it doesn't exist yet!"), false);
         } else {
-            if (player.isSecondaryUseActive()) {
-                //Debugged iterator and I think it works, but
-                // this part still seems buggy/broken
-                //debug it more in a bit
-                //ToDo: see above
-                player.displayClientMessage(Component.literal("Filling..."), true);
-                for (BlockPos bPos : gNode.getBlockPosIterator(true)){
-                    level.setBlock(bPos, Blocks.GLASS.defaultBlockState(), 3);
-                }
-                minor = major = null;
-            } else {
-                minor = gNode.minor().add(gChunk.relative.x, 0, gChunk.relative.y);
-                major = gNode.major().add(gChunk.relative.x, 0, gChunk.relative.y);
-                major.add(1, 1, 1); //Just for rendering
-                player.displayClientMessage(Component.literal("Rendering corners..."), true);
+            player.displayClientMessage(Component.literal("Filling..."), true);
+            for (BlockPos bPos : gNode.getBlockPosIterator(true)){
+                level.setBlock(bPos.offset(gChunk.relative.x, 0, gChunk.relative.y),
+                        Blocks.GLASS.defaultBlockState(), 3);
             }
         }
         return super.use(level, player, hand);
@@ -140,7 +101,6 @@ public class GStarNodeGeneratorWand extends Item {
 
     private static GreedyNode gNode;
     private static GreedyChunk gChunk;
-    private static Vector3i minor, major;
 
     private static GreedyNodeEvaluator evaluator;
 }

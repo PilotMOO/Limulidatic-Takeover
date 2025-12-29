@@ -11,7 +11,7 @@ package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data;
  */
 public abstract class BitPackage3d<T> {
     /**
-     * Creates a new BitPackage3d with a defined amount of bits per object and the size of the X/Y/Z axes
+     * Creates a new BitPackage3d with a defined amount of bits per object and the size of the X/Y/Z axis
      * @param bitsPerObject The amount of bits reserved per-object
      * @param sizeX The size of the X axis in the flat-3d array
      * @param sizeY The size of the Y axis in the flat-3d array
