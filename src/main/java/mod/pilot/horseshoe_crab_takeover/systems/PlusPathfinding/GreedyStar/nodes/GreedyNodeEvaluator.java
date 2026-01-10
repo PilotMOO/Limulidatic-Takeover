@@ -26,6 +26,7 @@ public abstract class GreedyNodeEvaluator {
         this.greedyChunk = gChunk;
         DimensionType dimT = level.dimensionType();
         MinWorld = dimT.minY(); MaxWorld = dimT.height();
+        ChunkArray2d = new LevelChunk[16];
 
         logger = new StatusLogger(String.format("GreedyChunk[%d] Node Evaluator", greedyChunk.chunkID));
     }
@@ -38,25 +39,9 @@ public abstract class GreedyNodeEvaluator {
         }
     }
 
-    //TODO: Read this shit and pick it back up when you feel like it
-    /*
-    * Im currently like, transferring the entirety of GreedyNodeBuilder into this class
-    * because there's no real reason to have them as separate thingies
-    *
-    * It's kind of a mess because I'm only halfway paying attention to what I need
-    * And the logic I need to build is fucking insane
-    *
-    * I could probably clean up the code a lot too, the QuadSpace chunk slicer uses
-    *  like 6 (?) repeating while loops and I could easily compress it into like 1 or 2
-    *  methods and just use method calls rather than copy/pasting 6 (almost) identical loops
-    *
-    * But that's like. a lot of work and I dont wanna do that rn even though I almost just
-    *  started. I'm writing this to remind me when I go to work on this again (maybe tomorrow?)
-    * */
-
     public Level level;
     public GreedyChunk greedyChunk;
-    public LevelChunk[] ChunkArray2d = new LevelChunk[16];
+    public LevelChunk[] ChunkArray2d;
 
     protected LevelChunk curChunk;
     protected LevelChunkSection curSection;
@@ -66,6 +51,7 @@ public abstract class GreedyNodeEvaluator {
     /*public LevelChunk getChunkByWorldCoordinates(int x, int z){
         return getChunk(toGreedyChunkContext(x / 16), toGreedyChunkContext(z / 16));
     }*/
+    //this goes unused, it's probably broken
     public byte coordinateToChunkArrayIndex(int x, int z){
         //Both world and context coordinates work
         // if they are world coords, compute to contextual
@@ -75,12 +61,12 @@ public abstract class GreedyNodeEvaluator {
         }
         return (byte)(((x / 16) << 2) | (z / 16));
     }
+
     public void updatedViewedMCChunk(int relativeX, int relativeZ, int worldY){
         this.curChunk = getChunk(relativeX, relativeZ);
         this.curSection = getSection(curChunk, worldY);
     }
     public LevelChunk getChunk(int relativeX, int relativeZ){
-        //ToDo: see why this is broken and isnt working and is cringe
         int arrayIndex = (relativeX * 4) + relativeZ;
         System.out.println("[GET CHUNK] Trying to get chunk index [" + relativeX + ", " + relativeZ + "]");
         System.out.println("Index computed to [" + arrayIndex + "]");
@@ -105,21 +91,14 @@ public abstract class GreedyNodeEvaluator {
     }
 
     public static byte toGreedyChunkContext(int coordinate){
-        //Fix this, it doesn't return the right values if the coordinate is negative
-        // if the value is negative, I think you just need to flip it?
-        // like, if it was -16 (AFTER remainder), then the right value would be 47 (63 - 16 = 47)
-        //ToDo: FIX CHUNK CONTEXTUALIZER; SEE ABOVE
         byte remainder = (byte)(coordinate % GreedyChunk.GreedyChunkXZDimensions);
-        System.out.println("Computing coordinate value[" + coordinate + "] to GChunk contexts, current [" + remainder + "]");
-        if (remainder < 0){
-            System.out.println("Remainder NEGATIVE");
-            remainder += GreedyChunk.GreedyChunkXZDimensions;
-            System.out.println("Negative fix: " + remainder);
-        }
+        if (remainder < 0) remainder += GreedyChunk.GreedyChunkXZDimensions;
+        System.out.println("Computing coordinate value[" + coordinate + "] to GChunk contexts, result[" + remainder + "]");
         return remainder;
     }
     public static byte toMCChunkContext(int coordinate){
-        return (byte)(coordinate % 16);
+        int remainder = coordinate % 16;
+        return (byte)(remainder < 0 ? remainder + 16 : remainder);
     }
     public Vector3i toWorldCoordinates(int x, int z){
         return toWorldCoordinates(x, 0, z);
@@ -136,13 +115,12 @@ public abstract class GreedyNodeEvaluator {
         return new Vec3(greedyChunk.relative.x + x, y, greedyChunk.relative.y + z);
     }
 
-    public void evaluateSection(QuadSpace section){
+    /*public void evaluateSection(QuadSpace section){
 
-    }
+    }*/
 
     protected int MinWorld, MaxWorld;
     protected GreedyNode curGNode;
-    //I need to recode this entire fucking method
     public GreedyNode buildNode(int worldX, int worldY, int worldZ, boolean reassignGChunk, boolean ignoreChecks){
         System.out.println("BUILDING NODE");
         //ToDo:
@@ -165,6 +143,8 @@ public abstract class GreedyNodeEvaluator {
             int maxX = minX + 64, maxZ = minZ + 64;
             if (worldX < minX || worldX >= maxX || worldZ < minZ || worldZ >= maxZ){
                 if (reassignGChunk) {
+                    //TODO: UPDATE THIS TO USE THE MULTIWORLD FEATURE
+                    // ONCE THAT IS ADDED
                     GreedyChunk newGChunk = GreedyWorld.WORLD_DEFAULT().retrieveFromWorldCoordinates(worldX, worldZ);
                     logger.log(String.format("Reassigning current GreedyChunk to [%d]...%n", newGChunk.chunkID),
                             false);
@@ -209,9 +189,10 @@ public abstract class GreedyNodeEvaluator {
                 }
                 //Check the next coordinate, and step the GNode if valid
                 // % 16 to ensure it's within MC chunk contexts
-                // don't worry about losing chunk accuracy, the evaluator-contained
-                // 'curChunk' and 'curChunkSection' is already updated to reflect
-                // the currently desired chunk [see updateViewedMCChunk(args...)]
+                // don't worry about referenced chunk misalignment,
+                // the evaluator-contained 'curChunk' and 'curChunkSection'
+                // are already updated to reflect the currently desired chunk
+                // [see updateViewedMCChunk(args...)]
                 if (evaluatePosition(
                         cX % 16,
                         sectY,
@@ -235,7 +216,6 @@ public abstract class GreedyNodeEvaluator {
                 changedChunks = false; //reset the flag for later use
             }
             /*------------------*/
-            //DISABLED POSITIVE X
 
             System.out.println("POSITIVE X");
             /*------------------
@@ -270,7 +250,8 @@ public abstract class GreedyNodeEvaluator {
             /*------------------
             Negative Z
             ------------------*/
-            while(--cZ > -1){//Step back
+            //Step back
+            while(--cZ > -1){
                 //IF the minecraft chunk index relative within the GreedyChunk changes
                 if (cZ / 16 < chunkRelativeZ) {
                     //Update the viewed chunk
@@ -286,11 +267,10 @@ public abstract class GreedyNodeEvaluator {
                     // current node, so the smallest valid X coordinate
                     byte checkX = (byte)(cX + i);
                     int upCRX = checkX / 16;
-                    System.out.println("har har har har: checkX " + checkX);
+                    //System.out.println("har har har har: checkX " + checkX);
                     if (chunkRelativeX < upCRX /*(chunkRelativeX = checkX / 16)*/){
                         System.out.println("[Within negZ] updating X relative from " + chunkRelativeX);
-
-                        chunkRelativeX = upCRX; //Testing
+                        chunkRelativeX = upCRX;
                         changedChunks = true;
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
@@ -300,7 +280,11 @@ public abstract class GreedyNodeEvaluator {
                         break;
                     }
                 }
+                System.out.println("NegZ cycle of " + cZ + " resulted in ["
+                        + valid + "] with cRelative " + chunkRelativeX
+                        + " fixing to " +( cX / 16));
                 chunkRelativeX = cX / 16; //in THEORY this should fix it...
+
                 if (valid) curGNode.stepZ(-1);
                 else break;
             }
@@ -521,7 +505,6 @@ public abstract class GreedyNodeEvaluator {
                                                  /*final LevelChunkSection chunkSection,*/
                                                  final BlockPos.MutableBlockPos bPos,
                                                  final BlockState bState);
-    public abstract boolean evaluateEvenIfOnlyAir();
     public abstract boolean checkNegativeY();
     public abstract boolean checkPositiveY();
     public boolean checkY(){return checkNegativeY() || checkPositiveY();}

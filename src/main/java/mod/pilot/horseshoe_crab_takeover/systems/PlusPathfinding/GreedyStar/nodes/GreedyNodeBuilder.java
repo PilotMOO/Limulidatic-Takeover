@@ -48,7 +48,7 @@ public class GreedyNodeBuilder {
         if (chunk == null) System.err.printf("[NODE EVALUATOR] WARNING! Failed to evaluate a chunk-sectioned QuadSpace of %s due to it failing to retrieve Chunk[%d, %d]%n", section, chunkX, chunkZ);
         else{
             LevelChunkSection chunkSlice = chunk.getSection(chunk.getSectionIndex(minor.y));
-            if (chunkSlice.hasOnlyAir() && !evaluator.evaluateEvenIfOnlyAir()) return;
+            //if (chunkSlice.hasOnlyAir() && !evaluator.evaluateEvenIfOnlyAir()) return;
 
             QuadSpace[] cleared = new QuadSpace[1];
             QuadSpace loopBounds = cleared[0] = new QuadSpace(section.minorX, section.minorY, section.minorZ);

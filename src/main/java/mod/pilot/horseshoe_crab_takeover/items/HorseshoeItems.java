@@ -33,6 +33,8 @@ public class HorseshoeItems {
             () -> new GreedyChunkReaderWand(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item>  QUADSPACE_FILL_WAND = ITEMS.register("quadspace_wand",
             () -> new QuadSpaceFillWand(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> CHUNK_CONTEXT_READER = ITEMS.register("chunk_context_wand",
+            () -> new GreedyChunkRelativeWand(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

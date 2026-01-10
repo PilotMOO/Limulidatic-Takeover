@@ -49,6 +49,7 @@ public class GStarNodeGeneratorWand extends Item {
                     }
                     bLow = sections[index].getBlockState(contextX, 15, contextZ);
                 }
+                
                 if (!bLow.isAir()) return true;
                 else{
                     System.out.println("BELOW WAS AIR :[");
@@ -62,7 +63,6 @@ public class GStarNodeGeneratorWand extends Item {
                 return bState.isAir() && !bLow.isAir();
             }
 
-            @Override public boolean evaluateEvenIfOnlyAir() {return false;}
             @Override public boolean checkNegativeY() {return false;}
             @Override public boolean checkPositiveY() {return false;}
         };
