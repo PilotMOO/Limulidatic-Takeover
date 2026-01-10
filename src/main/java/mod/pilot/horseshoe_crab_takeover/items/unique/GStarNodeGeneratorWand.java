@@ -29,10 +29,13 @@ public class GStarNodeGeneratorWand extends Item {
         evaluator = new GreedyNodeEvaluator() {
             @Override
             protected boolean evaluatePosition(int contextX, int contextY, int contextZ) {
-                System.out.println("Evaluating at coords ["
-                        + contextX + ", " + contextY + ", " + contextZ +"]");
+/*                System.out.println("Evaluating at coords ["
+                        + contextX + ", " + contextY + ", " + contextZ +"]");*/
                 BlockState bState = curSection.getBlockState(contextX, contextY, contextZ);
-                if (!bState.isAir()) return false;
+                if (!bState.isAir()){
+                    System.out.println("State WASN'T AIR: " + bState);
+                    return false;
+                }
                 BlockState bLow;
                 if (contextY > 1) bLow = curSection.getBlockState(contextX, contextY - 1, contextZ);
                 else{
@@ -46,7 +49,11 @@ public class GStarNodeGeneratorWand extends Item {
                     }
                     bLow = sections[index].getBlockState(contextX, 15, contextZ);
                 }
-                return !bLow.isAir();
+                if (!bLow.isAir()) return true;
+                else{
+                    System.out.println("BELOW WAS AIR :[");
+                    return false;
+                }
             }
 
             @Override

@@ -1,6 +1,5 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes;
 
-import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyChunk;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyMap;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyWorld;
@@ -143,6 +142,7 @@ public abstract class GreedyNodeEvaluator {
 
     protected int MinWorld, MaxWorld;
     protected GreedyNode curGNode;
+    //I need to recode this entire fucking method
     public GreedyNode buildNode(int worldX, int worldY, int worldZ, boolean reassignGChunk, boolean ignoreChecks){
         System.out.println("BUILDING NODE");
         //ToDo:
@@ -185,9 +185,11 @@ public abstract class GreedyNodeEvaluator {
 
         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
 
-        int cX = chunkContextX, cZ = chunkContextZ;
+        int cX = chunkContextX, cZ = chunkContextZ,
+                sectY = worldY % 16;
+        if (worldY < 0) sectY += 16;
 
-        if (evaluatePosition(cX % 16, worldY % 16, cZ % 16)){
+        if (evaluatePosition(cX % 16, sectY, cZ % 16)){
             System.out.println("INITIAL CHECK WORKED");
             curGNode = GreedyNode.buildSkeleton(chunkContextX, worldY, chunkContextZ);
 
@@ -199,6 +201,8 @@ public abstract class GreedyNodeEvaluator {
                 //Step back is handled in the while check
                 //If we are out of the bounds of the current MC chunk...
                 if (cX / 16 < chunkRelativeX) {
+                    System.out.println("reassigning X chunk from "
+                            + chunkRelativeX + " to " + (chunkRelativeX - 1));
                     changedChunks = true; //Set the flag so we can correct this later
                     //reassign the current MC chunk and section
                     updatedViewedMCChunk(--chunkRelativeX, chunkRelativeZ, worldY);
@@ -208,25 +212,30 @@ public abstract class GreedyNodeEvaluator {
                 // don't worry about losing chunk accuracy, the evaluator-contained
                 // 'curChunk' and 'curChunkSection' is already updated to reflect
                 // the currently desired chunk [see updateViewedMCChunk(args...)]
-                if (evaluatePosition(cX % 16,
-                        worldY % 16,
+                if (evaluatePosition(
+                        cX % 16,
+                        sectY,
                         cZ % 16)) {
-                    System.out.println("NEGATIVE X STEP VALID");
+                    //System.out.println("NEGATIVE X STEP VALID");
                     curGNode.stepX(-1);
                 }
                 else break; //Otherwise, stop checking backwards X values
             }
             //move the current X position back to the front of the QuadSpace
             // (the initial starting point)
+            System.out.println("Neg X done, cX is " + cX +
+                    ", being changed to " + chunkContextX);
             cX = chunkContextX;
             if (changedChunks){
                 //If the chunks changed last loop, update the current chunk
+                System.out.println("NEG X CHANGED CHUNK, FIXING FROM "
+                        + chunkRelativeX + " to " + (cX / 16));
                 chunkRelativeX = cX / 16;
                 updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 changedChunks = false; //reset the flag for later use
-                System.out.println("NEG X CHANGED CHUNK, FIXING...");
             }
             /*------------------*/
+            //DISABLED POSITIVE X
 
             System.out.println("POSITIVE X");
             /*------------------
@@ -237,10 +246,11 @@ public abstract class GreedyNodeEvaluator {
                     changedChunks = true;
                     updatedViewedMCChunk(++chunkRelativeX, chunkRelativeZ, worldY);
                 }
-                if (evaluatePosition(cX % 16,
-                        worldY % 16,
+                if (evaluatePosition(
+                        cX % 16,
+                        sectY,
                         cZ % 16)) {
-                    System.out.println("POS X STEP");
+                    //System.out.println("POS X STEP");
                     curGNode.stepX();
                 }
                 else break;
@@ -248,7 +258,8 @@ public abstract class GreedyNodeEvaluator {
             //Set the current X to the minor of the GreedyNode (lowest valid X value)
             cX = curGNode.minorX;
             if (changedChunks){
-                System.out.println("POS X CHANGED CHUNK, FIXING");
+                System.out.println("POS X CHANGED CHUNK, FIXING FROM "
+                        + chunkRelativeX + " to " + cX / 16);
                 chunkRelativeX = cX / 16;
                 updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 changedChunks = false;
@@ -260,31 +271,36 @@ public abstract class GreedyNodeEvaluator {
             Negative Z
             ------------------*/
             while(--cZ > -1){//Step back
+                //IF the minecraft chunk index relative within the GreedyChunk changes
                 if (cZ / 16 < chunkRelativeZ) {
+                    //Update the viewed chunk
                     changedChunks = true;
                     updatedViewedMCChunk(chunkRelativeX, --chunkRelativeZ, worldY);
                 }
                 //Cycle through all X positions
-                boolean valid = true;
+                boolean valid = true; //Flag for if any blocks are invalid
                 for (byte i = 0; i < curGNode.sizeX; i++){
+                    //^^ Cycle through all X positions
+
+                    //Add offset to cX, which is equal to the minor of the
+                    // current node, so the smallest valid X coordinate
                     byte checkX = (byte)(cX + i);
-                    if (chunkRelativeX < (chunkRelativeX = checkX / 16)){
-                        //Psst! I dunno if the above if check... actually works???
-                        // So... if shit is broken, might be because of this
-                        // (this kind of reassignment comparison check is used elsewhere
-                        // within this method, so keep that in mind :/)
+                    int upCRX = checkX / 16;
+                    System.out.println("har har har har: checkX " + checkX);
+                    if (chunkRelativeX < upCRX /*(chunkRelativeX = checkX / 16)*/){
+                        System.out.println("[Within negZ] updating X relative from " + chunkRelativeX);
+
+                        chunkRelativeX = upCRX; //Testing
                         changedChunks = true;
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
-                    if (!evaluatePosition(
-                            checkX % 16,
-                            worldY % 16,
-                            cZ % 16)) {
+                    if (!evaluatePosition(checkX % 16, sectY, cZ % 16)) {
                         System.out.println("Negative Z didnt like those coords");
                         valid = false;
                         break;
                     }
                 }
+                chunkRelativeX = cX / 16; //in THEORY this should fix it...
                 if (valid) curGNode.stepZ(-1);
                 else break;
             }
@@ -296,10 +312,11 @@ public abstract class GreedyNodeEvaluator {
             }
             /*------------------*/
 
+            /* DISABLED POS Z
             System.out.println("POS Z");
-            /*------------------
+            *//*------------------
             Positive Z
-            ------------------*/
+            ------------------*//*
             while(++cZ < 64){
                 if (cZ / 16 > chunkRelativeZ) {
                     changedChunks = true;
@@ -309,27 +326,34 @@ public abstract class GreedyNodeEvaluator {
                 boolean valid = true;
                 for (byte i = 0; i < curGNode.sizeX; i++){
                     byte checkX = (byte)(cX + i);
-                    if (chunkRelativeX < (chunkRelativeX = checkX / 16)){
-                        changedChunks = true;
+                    int upCRX = checkX / 16;
+                    if (chunkRelativeX < upCRX *//*(chunkRelativeX = checkX / 16)*//*){
+                        chunkRelativeX = upCRX; //Testing                        changedChunks = true;
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
                     if (!evaluatePosition(
                             checkX % 16,
-                            worldY % 16,
+                            sectY,
                             cZ % 16)) {
                         System.out.println("POSITIVE Z didnt like those coords");
+                        System.out.println("Node current state: " + curGNode);
                         valid = false;
                         break;
                     }
                 }
                 if (valid) curGNode.stepZ();
                 else break;
-            }
+            }*/
             /*Fixing chunk view changes is moved into the checkY() if statement because
             * if we aren't going to look at the Y axis then don't bother wasting our time
             * fixing the viewed chunk*/
             /*------------------*/
 
+            //DISABLED Y AXIS
+            //NOTE, THE BELOW CODE DOES NOT TAKE INTO ACCOUNT
+            // IF worldY IS < 0, NEEDS FIXING
+
+            /*
             //CHECKING Y AXIS//
 
             //Optionally, you can set the evaluator to assume that any Y values other than
@@ -337,7 +361,7 @@ public abstract class GreedyNodeEvaluator {
             // and not waste computational power on that
             System.out.println("Might check Y: " + checkY());
             if (checkY()) {
-                    /*See Positive Z axis post-comment on why this is here*/
+                    *//*See Positive Z axis post-comment on why this is here*//*
                 cZ = curGNode.minorZ; //Put it to the lowest valid Z point...
                 //No need to update cX because it should still be curGNode.minorX
                 // since checking the Z axis didn't modify the value, only read
@@ -352,14 +376,17 @@ public abstract class GreedyNodeEvaluator {
 
                 int cWorldY = worldY;
                 int curChunkIndex = curChunk.getSectionIndex(worldY);
-                /*------------------
+                *//*------------------
                 Negative Y
-                ------------------*/
+                ------------------*//*
                 if (checkNegativeY()) {
                     //Remember! We are checking Y level, so this time it's capped by the
                     // Dimension's Min|Max Y level and not the GreedyChunk's x64
                     while (--cWorldY > MinWorld) {//Step back
-                        if (curChunkIndex != (curChunkIndex = curChunk.getSectionIndex(cWorldY))) {
+                        //Delta = change
+                        int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
+                        if (curChunkIndex != chunkIndexDelta *//*(curChunkIndex = curChunk.getSectionIndex(cWorldY))*//*) {
+                            curChunkIndex = chunkIndexDelta;
                             //Console printing to ensure that the above logic does work
                             // and doesn't always default to false
                             System.out.println("Negative Y section jump worked!");
@@ -392,11 +419,11 @@ public abstract class GreedyNodeEvaluator {
                     //Fixing Negative Y chunk damage is moved into the Positive Y logic block
                     // because we don't need to fix anything if we aren't going to check anything else
                 }
-                /*------------------*/
+                *//*------------------*//*
 
-                /*------------------
+                *//*------------------
                 Positive Y
-                ------------------*/
+                ------------------*//*
                 if (checkPositiveY()) {
                     //Only update this stuff if we need to
                     // (repairing damages caused by the check Negative Y block)
@@ -416,7 +443,10 @@ public abstract class GreedyNodeEvaluator {
                         } else curSection = getSection(curChunk, cWorldY);
                     }
                     while (++cWorldY < MaxWorld) {
-                        if (curChunkIndex != (curChunkIndex = curChunk.getSectionIndex(cWorldY))) {
+                        //Delta = change
+                        int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
+                        if (curChunkIndex != chunkIndexDelta *//*(curChunkIndex = curChunk.getSectionIndex(cWorldY))*//*) {
+                            curChunkIndex = chunkIndexDelta;
                             System.out.println("Positive Y section jump worked!");
                             curSection = getSection(curChunk, curChunkIndex);
                         }
@@ -447,8 +477,8 @@ public abstract class GreedyNodeEvaluator {
                     //There is no more chunk modification checks because the Positive Y axis
                     // is the last one checked
                 }
-                /*------------------*/
-            }
+                *//*------------------*//*
+            }*/
 
             //Finally, we have expanded the node to all valid places
             // let's build it and slot it into its own GreedyMap then return it
