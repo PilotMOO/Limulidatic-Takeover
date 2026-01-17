@@ -49,7 +49,7 @@ public class GStarNodeGeneratorWand extends Item {
                     }
                     bLow = sections[index].getBlockState(contextX, 15, contextZ);
                 }
-                
+
                 if (!bLow.isAir()) return true;
                 else{
                     System.out.println("BELOW WAS AIR :[");
