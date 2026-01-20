@@ -25,7 +25,12 @@ public abstract class GreedyNodeEvaluator {
         this.level = level;
         this.greedyChunk = gChunk;
         DimensionType dimT = level.dimensionType();
-        MinWorld = dimT.minY(); MaxWorld = dimT.height();
+        //MaxWorld has +MinWorld because dimT.height is zero-context
+        // so if the minY is a negative value, it is equal to maxY - minY
+        // (E.G. maxY for overworld is 320 but dimT.height() = 384
+        // because minY = -64, so height + minY = 384 + -64 = 320)
+        MinWorld = dimT.minY();
+        MaxWorld = dimT.height() + MinWorld;
         ChunkArray2d = new LevelChunk[16];
 
         logger = new StatusLogger(String.format("GreedyChunk[%d] Node Evaluator", greedyChunk.chunkID));
@@ -96,14 +101,17 @@ public abstract class GreedyNodeEvaluator {
         byte remainder = (byte)(coordinate % GreedyChunk.GreedyChunkXZDimensions);
         if (negative) {
             remainder += GreedyChunk.GreedyChunkXZDimensions;
+            //Subtracting one because
+            // positive GreedyChunks go from 0 to 63
+            // but negative ones go from -64 to -1
             remainder--;
         }
         System.out.println("Computing coordinate value[" + coordinate + "] to GChunk contexts, result[" + remainder + "]");
         return remainder;
     }
     public static byte toMCChunkContext(int coordinate){
-        return (byte)((coordinate % 16)
-                + (coordinate < 0 ? 16:0));
+        int remainder = coordinate % 16;
+        return (byte)(remainder + (remainder < 0 ? 16:0));
     }
     public Vector3i toWorldCoordinates(int x, int z){
         return toWorldCoordinates(x, 0, z);
@@ -136,6 +144,8 @@ public abstract class GreedyNodeEvaluator {
 
         //X axis seems to be fucked, it overshoots a bunch when generating an uncapped
         // node...
+
+        System.out.println("Min world: " + MinWorld + ", max world: " + MaxWorld + ", both: " + (MaxWorld - MinWorld));
 
         if (!ignoreChecks){
             //Y position out of the bounds of the dimension?
@@ -311,6 +321,7 @@ public abstract class GreedyNodeEvaluator {
                 if (valid) curGNode.stepZ(-1);
                 else break;
             }
+            cZ = chunkContextZ;
             if (changedChunks) {
                 chunkRelativeX = cX / 16;
                 chunkRelativeZ = cZ / 16;
@@ -324,36 +335,42 @@ public abstract class GreedyNodeEvaluator {
             Positive Z
             ------------------*/
             while(++cZ < 64){
+                //IF the minecraft chunk index relative within the GreedyChunk changes
                 if (cZ / 16 > chunkRelativeZ) {
+                    //Update the viewed chunk
                     changedChunks = true;
                     updatedViewedMCChunk(chunkRelativeX, ++chunkRelativeZ, worldY);
                 }
                 //Cycle through all X positions
-                boolean valid = true;
+                boolean valid = true; //Flag for if any blocks are invalid
                 for (byte i = 0; i < curGNode.sizeX; i++){
+
                     byte checkX = (byte)(cX + i);
                     int upCRX = checkX / 16;
+                    //System.out.println("har har har har: checkX " + checkX);
                     if (chunkRelativeX < upCRX){
                         chunkRelativeX = upCRX;
                         //changedChunks = true;
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
-                    if (!evaluatePosition(
-                            checkX % 16,
-                            sectY,
-                            cZ % 16)) {
+                    if (!evaluatePosition(checkX % 16, sectY, cZ % 16)) {
+                        System.out.println("positive Z didnt like those coords");
                         valid = false;
                         break;
                     }
                 }
+                System.out.println("PosZ cycle of " + cZ + " resulted in ["
+                        + valid + "] with cRelative " + chunkRelativeX
+                        + " fixing to " +( cX / 16));
                 if (xCrossesChunk){
+                    System.out.println("X Cross chunk FIX");
                     chunkRelativeX = cX / 16;
                     updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 }
-                if (valid) curGNode.stepZ();
+
+                if (valid) curGNode.stepZ(1);
                 else break;
             }
-
             /*------------------*/
 
             //CHECKING Y AXIS//
@@ -385,13 +402,13 @@ public abstract class GreedyNodeEvaluator {
                 if (checkNegativeY()) {
                     //Remember! We are checking Y level, so this time it's capped by the
                     // Dimension's Min|Max Y level and not the GreedyChunk's x64
-                    while (--cWorldY > MinWorld) {//Step back
+                    while (--cWorldY > MinWorld) {
                         //Delta = change
                         int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
                         if (curChunkIndex != chunkIndexDelta) {
                             curChunkIndex = chunkIndexDelta;
                             //We don't need to change the viewed chunk, just the section
-                            curSection = getSection(curChunk, curChunkIndex);
+                            curSection = curChunk.getSection(curChunkIndex);
                         }
                         //Cycle through all X & Z positions
                         boolean valid = true;
@@ -417,15 +434,13 @@ public abstract class GreedyNodeEvaluator {
                             }
                             if (zCrossesChunk){
                                 chunkRelativeZ = cZ / 16;
-                                updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ,
-                                        cWorldY);
+                                updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, cWorldY);
                             }
                             if (!valid) break;
                         }
                         if (xCrossesChunk){
                             chunkRelativeX = cX / 16;
-                            updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ,
-                                    cWorldY);
+                            updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, cWorldY);
                         }
                         if (valid) curGNode.stepY(-1);
                         else break;
@@ -444,15 +459,15 @@ public abstract class GreedyNodeEvaluator {
                         // it should already be located in the lowest chunk index
                         // because of the cycle index repairing done after each
                         // X & Z loop in the negative Y axis
-                        curSection = getSection(curChunk,
-                                cWorldY = curGNode.minorY);
+                        curSection = getSection(curChunk, cWorldY = worldY);
                     }
                     while (++cWorldY < MaxWorld) {
                         //Delta = change
+                        System.out.println("[POS Y] cWorldY is " + cWorldY);
                         int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
                         if (curChunkIndex != chunkIndexDelta) {
                             curChunkIndex = chunkIndexDelta;
-                            curSection = getSection(curChunk, curChunkIndex);
+                            curSection = curChunk.getSection(curChunkIndex);
                         }
                         //Cycle through all X & Z positions
                         boolean valid = true;
@@ -477,15 +492,13 @@ public abstract class GreedyNodeEvaluator {
                             }
                             if (zCrossesChunk){
                                 chunkRelativeZ = cZ / 16;
-                                updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ,
-                                        cWorldY);
+                                updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, cWorldY);
                             }
                             if (!valid) break;
                         }
                         if (xCrossesChunk){
                             chunkRelativeX = cX / 16;
-                            updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ,
-                                    cWorldY);
+                            updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, cWorldY);
                         }
                         if (valid) curGNode.stepY();
                         else break;
