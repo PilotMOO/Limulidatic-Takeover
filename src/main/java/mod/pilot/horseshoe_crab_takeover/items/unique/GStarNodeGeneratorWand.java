@@ -29,8 +29,7 @@ public class GStarNodeGeneratorWand extends Item {
         evaluator = new GreedyNodeEvaluator() {
             @Override
             protected boolean evaluatePosition(int contextX, int contextY, int contextZ) {
-                System.out.println("Evaluating at coords ["
-                        + contextX + ", " + contextY + ", " + contextZ +"]");
+                //System.out.println("Evaluating at coords [" + contextX + ", " + contextY + ", " + contextZ +"]");
                 BlockState bState = curSection.getBlockState(contextX, contextY, contextZ);
                 if (!bState.isAir()/* && !bState.is(Blocks.LAPIS_BLOCK)*/){
                     System.out.println("State WASN'T AIR: " + bState);
@@ -83,7 +82,8 @@ public class GStarNodeGeneratorWand extends Item {
         gNode = evaluator.buildNode(bPos.getX(), bPos.getY(), bPos.getZ(),
                 false, false);
         GStarNodeGeneratorWand.gChunk = evaluator.greedyChunk;
-        player.displayClientMessage(Component.literal("node at " + bPos), false);
+        if (gNode != null) player.displayClientMessage(Component.literal("node at " + bPos), false);
+        else player.displayClientMessage(Component.literal("FAILED to make node at " + bPos), false);
         System.out.println("Created node " +  gNode);
         evaluator.logger.printAll();
         return InteractionResult.SUCCESS;

@@ -106,6 +106,7 @@ public class GreedyMap {
         recomputeBounds = false;
     }
 
+    public int count() { return nodes.size; }
     public MapContext.Container nodes;
     public void addNode(GreedyNode gNode){
         gNode.assignID(newNodeID());
@@ -309,6 +310,12 @@ public class GreedyMap {
             return (byte)(id & ~ID_MASK);
         }
 
+        @Override
+        public String toString() {
+            return "MapContext(" + "node:" + node
+                    + "){ relatives{"+size+"}[" + Arrays.toString(relativeIDs) + ']';
+        }
+
         public static class Container implements Iterable<GreedyNode>{
             public Container(){
                 contexts = new MapContext[0];
@@ -373,12 +380,10 @@ public class GreedyMap {
                 this.size = newSize;
             }
 
-            //private final NodeIterator nIterator = new NodeIterator();
             @Override
             public @NotNull Iterator<GreedyNode> iterator() {
                 return new NodeIterator();
             }
-            //private final ContextIterator cIterator = new ContextIterator();
             public @NotNull Iterator<MapContext> contextIterator() {
                 return new ContextIterator();
             }
@@ -387,16 +392,10 @@ public class GreedyMap {
                 public NodeIterator(){
                     elements = contexts;
                     count = elements.length;
-                    index = 0;
+                    index = -1;
                 }
-                /*public NodeIterator reset(){
-                    objs = contexts;
-                    count = objs.length;
-                    index = 0;
-                    return this;
-                }*/
                 public MapContext[] elements;
-                private int count;
+                private final int count;
                 private int index;
 
                 @Override public boolean hasNext() {return index + 1 < count;}
@@ -408,20 +407,23 @@ public class GreedyMap {
                 public ContextIterator(){
                     elements = contexts;
                     count = elements.length;
-                    index = 0;
+                    index = -1;
                 }
-                /*public ContextIterator reset(){
-
-                    return this;
-                }*/
                 public MapContext[] elements;
-                private int count;
+                private final int count;
                 private int index;
 
                 @Override public boolean hasNext() {return index + 1 < count;}
                 @Override public MapContext next() {
                     return elements[++index];
                 }
+            }
+
+            @Override
+            public String toString() {
+                return "\n        Container[count:"+size+"]{"
+                        + Arrays.toString(contexts) +
+                        '}';
             }
         }
     }
@@ -613,5 +615,15 @@ public class GreedyMap {
             }
             else if (newSize != size) growArrays(size - newSize);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "GreedyMap["+mapID+"]{" +
+                "MapExtensionRange(" + MapExtensionRange +
+                "), recomputeBounds(" + recomputeBounds +
+                "), mapBounds " + mapBounds +
+                ",\nnodes" + nodes +
+                '}';
     }
 }

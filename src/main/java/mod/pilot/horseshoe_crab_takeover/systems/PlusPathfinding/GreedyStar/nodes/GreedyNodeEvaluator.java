@@ -56,35 +56,24 @@ public abstract class GreedyNodeEvaluator {
     /*public LevelChunk getChunkByWorldCoordinates(int x, int z){
         return getChunk(toGreedyChunkContext(x / 16), toGreedyChunkContext(z / 16));
     }*/
-    //this goes unused, it's probably broken
-    public byte coordinateToChunkArrayIndex(int x, int z){
-        //Both world and context coordinates work
-        // if they are world coords, compute to contextual
-        if ((x & z) > GreedyChunk.GreedyChunkXZDimensions){
-            x = toGreedyChunkContext(x);
-            z = toGreedyChunkContext(z);
-        }
-        return (byte)(((x / 16) << 2) | (z / 16));
-    }
 
     public void updatedViewedMCChunk(int relativeX, int relativeZ, int worldY){
         this.curChunk = getChunk(relativeX, relativeZ);
         this.curSection = getSection(curChunk, worldY);
     }
     public LevelChunk getChunk(int relativeX, int relativeZ){
-        //this can have an out of bounds error for some reason, I'm confused
         int arrayIndex = (relativeX * 4) + relativeZ;
-        System.out.println("[GET CHUNK] Trying to get chunk index [" + relativeX + ", " + relativeZ + "]");
-        System.out.println("Index computed to [" + arrayIndex + "]");
+        //System.out.println("[GET CHUNK] Trying to get chunk index [" + relativeX + ", " + relativeZ + "]");
+        //System.out.println("Index computed to [" + arrayIndex + "]");
         LevelChunk chunk = ChunkArray2d[arrayIndex];
         if (chunk == null){
-            System.out.println("Chunk array was empty, locating from world...");
+            //System.out.println("Chunk array was empty, locating from world...");
             int chunkX = (greedyChunk.relative.x >> 4) + relativeX,
                     chunkZ = (greedyChunk.relative.y >> 4) + relativeZ;
-            System.out.println("chunk coords computed to [" + chunkX + ", " + chunkZ +"]");
+            //System.out.println("chunk coords computed to [" + chunkX + ", " + chunkZ +"]");
             chunk = ChunkArray2d[arrayIndex] =
                     (LevelChunk)level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
-            System.out.println("Level returned " + chunk);
+            //System.out.println("Level returned " + chunk);
         }
         return chunk;
     }
@@ -106,7 +95,7 @@ public abstract class GreedyNodeEvaluator {
             // but negative ones go from -64 to -1
             remainder--;
         }
-        System.out.println("Computing coordinate value[" + coordinate + "] to GChunk contexts, result[" + remainder + "]");
+        //System.out.println("Computing coordinate value[" + coordinate + "] to GChunk contexts, result[" + remainder + "]");
         return remainder;
     }
     public static byte toMCChunkContext(int coordinate){
@@ -142,8 +131,12 @@ public abstract class GreedyNodeEvaluator {
         // Check for other nodes within other GreedyMaps in the same GChunk
         // to ensure that any given position isn't already covered
 
-        //X axis seems to be fucked, it overshoots a bunch when generating an uncapped
-        // node...
+        //THERE IS AN ISSUE WITH GENERATING NODES WHERE THE INITIAL POSITION SEEMS
+        // TO BE OFFSET BY 1 ALONG THE NEGATIVE Z AXIS, MIGHT BE FOR BOTH X AND Z
+        //MIGHT BE AND ISSUE WITH THE REWORKED TOGREEDYCHUNKCONTEXT METHOD
+        // TO COMPENSATE FOR HOW NEGATIVES WORK
+        //FURTHER TESTING IS NEEDED, I HAVE ONLY DEBUGGED IN NEGATIVE RELATIVE CHUNKS
+        //I NEED TO GO TO WORK SO I CANT DO ANY MORE DEBUGGING, FIX THIS LATER
 
         System.out.println("Min world: " + MinWorld + ", max world: " + MaxWorld + ", both: " + (MaxWorld - MinWorld));
 
@@ -179,16 +172,40 @@ public abstract class GreedyNodeEvaluator {
                 chunkContextZ = toGreedyChunkContext(worldZ);
         int chunkRelativeX = chunkContextX / 16, chunkRelativeZ = chunkContextZ / 16;
 
-        System.out.println("chunk xz context is [" + chunkContextX + ", " + chunkContextZ + "]");
+        //System.out.println("chunk xz context is [" + chunkContextX + ", " + chunkContextZ + "]");
 
         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
 
         int cX = chunkContextX, cZ = chunkContextZ,
-                sectY = worldY % 16;
-        if (worldY < 0) sectY += 16;
+                sectY = toMCChunkContext(worldY);
+
+        //Grabbing the gMap early so we can access preexisting GNodes to avoid overlap
+        GreedyMap gMap = greedyChunk.locateClosest(chunkContextX, worldY, chunkContextZ,
+                GreedyChunk.SearchType.MapExtension);
+        int mapCount = -1;
+        boolean checkGMap = gMap != null && (mapCount = gMap.count()) != 0;
+        System.out.println("gMap is " + gMap);
+        GreedyNode[] sisters = null; byte[] sisterRelative = null;
+        if (checkGMap) {
+            sisters = new GreedyNode[mapCount];
+            sisterRelative = new byte[mapCount];
+            int i = 0;
+            //idk if it's reading nodes yet smh
+            System.out.println("Shitting out this many GNodes in this map: " + mapCount);
+            for (GreedyNode gNode : gMap.nodes){
+                sisters[i] = gNode;
+                System.out.println("gMap contains gNode " + gNode + " at index " + ++i + " of " + (gMap.count() - 1));
+                if (gNode.contains(chunkContextX, worldY, chunkContextZ)){
+                    logger.log(String.format("Position[%d, %d, %d] is already contained in a preexisting GreedyNode %s",
+                                    worldX, worldY, worldZ, gNode),
+                            false);
+                    return null;
+                }
+            }
+        }
 
         if (evaluatePosition(cX % 16, sectY, cZ % 16)){
-            System.out.println("INITIAL CHECK WORKED");
+            //System.out.println("INITIAL CHECK WORKED");
             curGNode = GreedyNode.buildSkeleton(chunkContextX, worldY, chunkContextZ);
 
             /*------------------
@@ -196,11 +213,28 @@ public abstract class GreedyNodeEvaluator {
             ------------------*/
             boolean changedChunks = false;
             while(--cX > -1){
+                if (checkGMap) {
+                    boolean overlap = false;
+                    for (int i = 0; i < mapCount; i++) {
+                        GreedyNode gNode = sisters[i];
+                        System.out.println("cX=" + cX + ", checking node " + gNode);
+                        if (gNode.contains(cX, worldY, cX)){
+                            System.out.println("Another node contains pos");
+                            overlap = true;
+                            sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_WEST);
+                            break;
+                        }
+                    }
+                    if (overlap) {
+                        System.out.println("NEGATIVE X BROKE EARLY BECAUSE OF NODE OVERLAP");
+                        break;
+                    }
+                }
                 //Step back is handled in the while check
                 //If we are out of the bounds of the current MC chunk...
                 if (cX / 16 < chunkRelativeX) {
-                    System.out.println("reassigning X chunk from "
-                            + chunkRelativeX + " to " + (chunkRelativeX - 1));
+                    /*System.out.println("reassigning X chunk from "
+                            + chunkRelativeX + " to " + (chunkRelativeX - 1));*/
                     changedChunks = true; //Set the flag so we can correct this later
                     //reassign the current MC chunk and section
                     updatedViewedMCChunk(--chunkRelativeX, chunkRelativeZ, worldY);
@@ -222,20 +256,15 @@ public abstract class GreedyNodeEvaluator {
             }
             //move the current X position back to the front of the QuadSpace
             // (the initial starting point)
-            System.out.println("Neg X done, cX is " + cX +
-                    ", being changed to " + chunkContextX);
             cX = chunkContextX;
             if (changedChunks){
                 //If the chunks changed last loop, update the current chunk
-                System.out.println("NEG X CHANGED CHUNK, FIXING FROM "
-                        + chunkRelativeX + " to " + (cX / 16));
                 chunkRelativeX = cX / 16;
                 updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 changedChunks = false; //reset the flag for later use
             }
             /*------------------*/
 
-            System.out.println("POSITIVE X");
             /*------------------
             Positive X
             ------------------*/
@@ -309,11 +338,11 @@ public abstract class GreedyNodeEvaluator {
                         break;
                     }
                 }
-                System.out.println("NegZ cycle of " + cZ + " resulted in ["
+                /*System.out.println("NegZ cycle of " + cZ + " resulted in ["
                         + valid + "] with cRelative " + chunkRelativeX
-                        + " fixing to " +( cX / 16));
+                        + " fixing to " +( cX / 16));*/
                 if (xCrossesChunk){
-                    System.out.println("X Cross chunk FIX");
+                    //System.out.println("X Cross chunk FIX");
                     chunkRelativeX = cX / 16; //in THEORY this should fix it...
                     updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 }
@@ -359,11 +388,11 @@ public abstract class GreedyNodeEvaluator {
                         break;
                     }
                 }
-                System.out.println("PosZ cycle of " + cZ + " resulted in ["
+                /*System.out.println("PosZ cycle of " + cZ + " resulted in ["
                         + valid + "] with cRelative " + chunkRelativeX
-                        + " fixing to " +( cX / 16));
+                        + " fixing to " +( cX / 16));*/
                 if (xCrossesChunk){
-                    System.out.println("X Cross chunk FIX");
+                    //System.out.println("X Cross chunk FIX");
                     chunkRelativeX = cX / 16;
                     updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 }
@@ -418,10 +447,10 @@ public abstract class GreedyNodeEvaluator {
                                         checkZ = (byte) (cZ + j);
                                 if (chunkRelativeX < (chunkRelativeX = checkX / 16) ||
                                         chunkRelativeZ < (chunkRelativeZ = checkZ / 16)) {
-                                    System.out.println("Chunk X|Z changed during neg Y loop, values: "+
+                                    /*System.out.println("Chunk X|Z changed during neg Y loop, values: "+
                                             "checkX[" + checkX + "] from cX " +cX +
                                             "checkZ[" + checkZ + "] from cZ " +  cZ +
-                                            "x, z [" + chunkRelativeX + ", " + chunkRelativeZ + "]");
+                                            "x, z [" + chunkRelativeX + ", " + chunkRelativeZ + "]");*/
                                     //changedChunks = true;
                                     updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, cWorldY);
                                 }
@@ -509,13 +538,14 @@ public abstract class GreedyNodeEvaluator {
                 /*------------------*/
             }
 
-            //Finally, we have expanded the node to all valid places
-            // let's build it and slot it into its own GreedyMap then return it
-            GreedyMap gMap = greedyChunk.locateClosest(curGNode, GreedyChunk.SearchType.MapExtension);
-            if (gMap == null) gMap = greedyChunk.buildNewMap();
+            if (gMap == null) {
+                System.out.println("BUILDING NEW MAP");
+                gMap = greedyChunk.buildNewMap();
+            }
             gMap.addNode(curGNode);
             logger.log(String.format("Successfully evaluated position [%d, %d, %d] with resulting GreedyNode of %s with GlobalID[%d]%n)", worldX, worldY, worldZ, curGNode.toString(), greedyChunk.computeGlobalID(gMap.computeMapLevelID(curGNode.nodeID))), false);
             System.out.println("YIPPEE!!!");
+            System.out.println("GChunk is " + greedyChunk);
             return curGNode;
         }
         else {

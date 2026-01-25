@@ -153,13 +153,13 @@ public class QuadSpace{
                 && z >= minorZ && (z - minorZ) <= sizeZ;
     }
     public boolean contains(QuadSpace qSpace){
-        if(this.invalid() || qSpace.invalid()) return false;
+        if (this.invalid() || qSpace.invalid()) return false;
         return this.contains(qSpace.minorX, qSpace.minorY, qSpace.minorZ)
                 && this.contains(qSpace.major());
     }
 
     public boolean intersects(QuadSpace qSpace){
-        if (invalid()) return false;
+        if (invalid() || qSpace.invalid()) return false;
         //these variables could be inlined but that makes it less legible so... eh.
         int otherMajorX = qSpace.minorX + qSpace.sizeX,
                 otherMajorY = qSpace.minorY + qSpace.sizeY,
@@ -172,6 +172,21 @@ public class QuadSpace{
         if (minorX > otherMajorX || majorX < qSpace.minorX) return false;
         if (minorY > otherMajorY || majorY < qSpace.minorY) return false;
         return minorZ <= otherMajorZ && majorZ >= qSpace.minorZ;
+    }
+    public boolean intersects(int x, int y, int z, int sizeX, int sizeY, int sizeZ){
+        if (invalid()) return false;
+        //these variables could be inlined but that makes it less legible so... eh.
+        int otherMajorX = x + sizeX,
+                otherMajorY = y + sizeY,
+                otherMajorZ = z + sizeZ;
+        int majorX = minorX + this.sizeX,
+                majorY = minorY + this.sizeY,
+                majorZ = minorZ + this.sizeZ;
+        //Check if the minor overshoots the other major
+        // or if the major undershoots the other minor for each axis
+        if (minorX > otherMajorX || majorX < x) return false;
+        if (minorY > otherMajorY || majorY < y) return false;
+        return minorZ <= otherMajorZ && majorZ >= z;
     }
     public boolean intersectInflated(QuadSpace qSpace, double inflation){
         if (invalid()) return false;
@@ -197,7 +212,31 @@ public class QuadSpace{
     }
 
     /**
-     * Returns the distance of the given coordinate to the closest edge of the QuadSpace.
+     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
+     * with the first coordinate being the minor of this QuadSpace
+     * @param x X value of the second coordinate
+     * @param y Y value of the second coordinate
+     * @param z Z value of the second coordinate
+     * @return The distance from the coordinate to the minor of this QuadSpace
+     */
+    public double distanceMinor(double x, double y, double z){
+        return distance(minorX, minorY, minorZ, x, y, z);
+    }
+    /**
+     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
+     * with the first coordinate being the major of this QuadSpace
+     * @param x X value of the second coordinate
+     * @param y Y value of the second coordinate
+     * @param z Z value of the second coordinate
+     * @return The distance from the coordinate to the major of this QuadSpace
+     */
+    public double distanceMajor(double x, double y, double z){
+        return distance(minorX + sizeX, minorY + sizeY, minorZ + sizeZ, x, y, z);
+    }
+
+    /**
+     * Returns the distance of the given coordinate to the closest
+     * edge or face of the QuadSpace.
      * If the coordinate is within the QuadSpace
      * (so that {@link QuadSpace#contains(double, double, double)} returns true)
      * then the distance is 0.
@@ -209,7 +248,7 @@ public class QuadSpace{
      * (satisfies {@link QuadSpace#contains(double, double, double)})
      * will return 0. If the QuadSpace is invalid, distance is -1
      */
-    public double distanceToQuadSpace(double x, double y, double z){
+    public double distanceToEdge(double x, double y, double z){
         //Invalid QuadSpaces aren't, well... valid.
         if (invalid()) return -1;
         //If the point is within the bounds of the QuadSpace
@@ -261,28 +300,70 @@ public class QuadSpace{
         //Return the square root of all 3 squares added
         return Math.sqrt(distX + distY + distZ);
     }
+    /**
+     * Returns the distance of the closest edge or face of the argument
+     * to the closest edge or face of the QuadSpace.
+     * If the two QuadSpaces intersect is within the QuadSpace
+     * (so that {@link QuadSpace#intersects(QuadSpace)} returns true)
+     * then the distance is 0.
+     * @param quad the other QuadSpace to compare edge distance
+     * @return the distance to the two closest coordinates between the QuadSpaces,
+     * NOT the center. Intersecting QuadSpaces
+     * (satisfies {@link QuadSpace#intersects(QuadSpace)})
+     * will return 0. If either QuadSpace is invalid, distance is -1
+     */
+    public double distanceEdgeToEdge(QuadSpace quad){
+        //If either are invalid, no need to compare
+        if (invalid() || quad.invalid()) return -1;
+        //If they clip each other, then the distance is 0
+        if (intersects(quad)) return 0;
+        //The major coordinates of this QSpace
+        int majorX = minorX + sizeX,
+                majorY = minorY + sizeY,
+                majorZ = minorZ + sizeZ;
+        //The major coordinates of the argument
+        int oMajorX = quad.minorX + quad.sizeX,
+                oMajorY = quad.minorY + quad.sizeY,
+                oMajorZ = quad.minorZ + quad.sizeZ;
+        //The coordinates from this QSpace to compare
+        int compareX, compareY, compareZ;
+        //The coordinates from the argument QSpace to compare
+        int o_compareX, o_compareY, o_compareZ;
+        //If the argument major is BELOW this QSpace's minor,
+        // then we want to compare these two points.
+        if (oMajorX < minorX){
+            compareX = minorX;
+            o_compareX = oMajorX;
+        } else if (quad.minorX > majorX) {
+            //Else, if the argument minor is ABOVE this major,
+            // then compare those two
+            compareX = majorX;
+            o_compareX = quad.minorX;
+        }
+        //Otherwise, there has to be some overlap, so we default the comparisons to 0
+        else compareX = o_compareX = 0;
+        
+        //Y...
+        if (oMajorY < minorY){
+            compareY = minorY;
+            o_compareY = oMajorY;
+        } else if (quad.minorY > majorY) {
+            compareY = majorY;
+            o_compareY = quad.minorY;
+        }
+        else compareY = o_compareY = 0;
+        
+        //Z...
+        if (oMajorZ < minorZ){
+            compareZ = minorZ;
+            o_compareZ = oMajorZ;
+        } else if (quad.minorZ > majorZ) {
+            compareZ = majorZ;
+            o_compareZ = quad.minorZ;
+        }
+        else compareZ = o_compareZ = 0;
 
-    /**
-     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
-     * with the first coordinate being the minor of this QuadSpace
-     * @param x X value of the second coordinate
-     * @param y Y value of the second coordinate
-     * @param z Z value of the second coordinate
-     * @return The distance from the coordinate to the minor of this QuadSpace
-     */
-    public double distanceMinor(double x, double y, double z){
-        return distance(minorX, minorY, minorZ, x, y, z);
-    }
-    /**
-     * Shorthand, computes {@link QuadSpace#distance(double, double, double, double, double, double)}
-     * with the first coordinate being the major of this QuadSpace
-     * @param x X value of the second coordinate
-     * @param y Y value of the second coordinate
-     * @param z Z value of the second coordinate
-     * @return The distance from the coordinate to the major of this QuadSpace
-     */
-    public double distanceMajor(double x, double y, double z){
-        return distance(minorX + sizeX, minorY + sizeY, minorZ + sizeZ, x, y, z);
+        return distance(compareX, compareY, compareZ, o_compareX, o_compareY, o_compareZ);
     }
 
     /**

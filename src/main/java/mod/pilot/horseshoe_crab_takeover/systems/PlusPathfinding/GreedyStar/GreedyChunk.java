@@ -1,12 +1,13 @@
 package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar;
 
-import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.world.phys.Vec3;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joml.Vector2i;
 import org.joml.Vector3i;
+
+import java.util.Arrays;
 
 public class GreedyChunk {
     public static byte GreedyChunkXZDimensions = 64;
@@ -67,7 +68,7 @@ public class GreedyChunk {
         //maps = DataHelper.Arrays.expandAndAdd(maps, map);
         int newSize = maps.length + 1;
         GreedyMap[] newMaps = new GreedyMap[newSize];
-        if (newSize > 1) System.arraycopy(maps, 0, newMaps, 0, newSize);
+        if (newSize > 1) System.arraycopy(maps, 0, newMaps, 0, newSize - 1);
         newMaps[newSize - 1] = map;
         maps = newMaps;
     }
@@ -95,7 +96,11 @@ public class GreedyChunk {
 
     public GreedyMap buildNewMap() {
         GreedyMap gMap = new GreedyMap(newMapID());
+        System.out.println("NEW map id " + gMap.mapID + ", this gchunk used to have "
+        + maps.length + " maps");
         addMap(gMap);
+        System.out.println("it now has " + maps.length);
+        System.out.println("[BUILD NEW MAP] printing self... " + this);
         return gMap;
     }
     public byte newMapID(){
@@ -124,14 +129,13 @@ public class GreedyChunk {
     }
     /**
      * Looks for the closest GreedyMap within this GChunk that matches the given [XYZ] coordinates
-     * Behaviour changes based off of the 4th argument:
+     * Behavior changes based off of the 4th argument:
      * <p>{@code InBounds}: The target GreedyMap's {@link GreedyMap#mapBounds}
      * MUST contain the supplied coordinate. Strictest argument type.</p>
      * {@code MapExtension}: Same as {@code InBounds} but it adds the Map's
      * {@link GreedyMap#MapExtensionRange} to the bounds.
      * <p>{@code MapExtensionDefault} Same as prior, but ignores the personalized map extension and assumes the default value [{@link GreedyMap#DEFAULT_MapExtensionRange}]</p>
      * {@code AnyClosest} Returns the closest GreedyMap within the GChunk regardless of its distance to the point. Will still return {@code null} if the GChunk is empty
-     * ---I suck at coding so this doesn't do shit rn blehhhh :MiddleFinger:
      * @param x the X coordinate of the reference area
      * @param y the Y coordinate of the reference area
      * @param z the Z coordinate of the reference area
@@ -142,6 +146,8 @@ public class GreedyChunk {
     public @Nullable GreedyMap locateClosest(final int x, final int y, final int z,
                                                 SearchType searchType){
         if (maps.length == 0) return null;
+        System.out.println("map count is not zero, totaling to " + maps.length);
+        System.out.println("Search type " + searchType);
         return switch(searchType){
             case InBounds -> {
                 for (GreedyMap gMap : maps) if (gMap.getBounds().contains(x,y,z)) yield gMap;
@@ -163,9 +169,18 @@ public class GreedyChunk {
                 }
                 yield null;
             }
-            //idk how to figure out the distance from a point to the nearest
-            // part of a rectangular prism so this'll just be... left as this until I get gud
-            case AnyClosest -> null;
+            case AnyClosest -> {
+                GreedyMap closest = null;
+                double dist = Double.MAX_VALUE;
+                for (GreedyMap gMap : maps) {
+                    double dist1 = gMap.getBounds().distanceToEdge(x, y, z);
+                    if (dist1 < dist) {
+                        closest = gMap;
+                        dist = dist1;
+                    }
+                }
+                yield closest;
+            }
             default -> null;
         };
     }
@@ -203,8 +218,18 @@ public class GreedyChunk {
                 }
                 yield null;
             }
-            //Bleh i dont wanna do this shit so nah
-            case AnyClosest -> null;
+            case AnyClosest -> {
+                GreedyMap closest = null;
+                double dist = Double.MAX_VALUE;
+                for (GreedyMap gMap : maps) {
+                    double dist1 = gMap.getBounds().distanceEdgeToEdge(localizedQSpace);
+                    if (dist1 < dist) {
+                        closest = gMap;
+                        dist = dist1;
+                    }
+                }
+                yield closest;
+            }
         };
     }
 
@@ -315,5 +340,20 @@ public class GreedyChunk {
         int x = (int)(id >>> 40) * 64;
         int z = (int)(id << 24 >>> 40) * 64;
         return new Vector3i(x, yCoordinate, z);
+    }
+
+    @Override
+    public String toString() {
+        return "GreedyChunk["+chunkID+"]{" +
+                "relative" + relative +
+                ", \n    maps[" + Arrays.toString(maps) +
+                "]}";
+    }
+    public String toString(boolean binaryID){
+        if (binaryID){
+            return "GreedyChunk["+BitwiseDataHelper.parseLongToBinary(chunkID)+"]{" +
+                    "relative" + relative +
+                    "\nmaps[" + Arrays.toString(maps) + "]}";
+        } else return toString();
     }
 }

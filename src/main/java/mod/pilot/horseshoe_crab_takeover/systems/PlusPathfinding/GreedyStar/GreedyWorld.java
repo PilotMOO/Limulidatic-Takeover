@@ -4,6 +4,7 @@ import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -20,8 +21,11 @@ public class GreedyWorld {
     }
 
     public static GreedyWorld WORLD_DEFAULT(){
-        if (defaultInit) return greedyWorld_DEFAULT;
-        else return greedyWorld_DEFAULT = new GreedyWorld("WORLD_DEFAULT");
+        if (!defaultInit){
+            defaultInit = true;
+            greedyWorld_DEFAULT = new GreedyWorld("WORLD_DEFAULT");
+        }
+        return greedyWorld_DEFAULT;
     }
     static boolean defaultInit = false;
 
@@ -64,19 +68,17 @@ public class GreedyWorld {
         greedyWorldCache = null;
     }
 
-    //WIP! Set up long-term storage and unpacking from file
-    private HashMap<Long, GreedyChunk> computeGreedyCache() {
-        return new HashMap<>();
-    }
-
     private GreedyChunk[] greedyWorldCache;
     public GreedyChunk addChunkToRAMCache(GreedyChunk chunk){
+        System.out.println("[GREEDY WORLD] trying to add " + chunk + " to ram cache");
         if (chunk == null) return null;
         int newSize = greedyWorldCache.length + 1;
         GreedyChunk[] newRAMCache = new GreedyChunk[newSize];
-        if (newSize > 1) System.arraycopy(greedyWorldCache, 0, newRAMCache, 0, newSize);
+        if (newSize > 1) System.arraycopy(greedyWorldCache, 0, newRAMCache, 0, greedyWorldCache.length);
         newRAMCache[newSize - 1] = chunk;
         greedyWorldCache = newRAMCache;
+        System.out.println("RAM state AFTER addition: "
+                + Arrays.toString(greedyWorldCache));
         return chunk;
     }
     public @Nullable GreedyChunk getFromRAMCache(long chunkID){
@@ -93,7 +95,7 @@ public class GreedyWorld {
     public GreedyChunk retrieveOrCreateGreedyChunk(long chunkID){
         GreedyChunk gChunk = getFromRAMCache(chunkID);
         if (gChunk != null) return gChunk;
-        else gChunk = addChunkToRAMCache(checkFileCache(chunkID));
+        else gChunk = checkFileCache(chunkID);
         return gChunk != null ? gChunk : createChunkInRAM(chunkID);
     }
     public @Nullable GreedyChunk retrieveOnly(long chunkID){
@@ -104,14 +106,19 @@ public class GreedyWorld {
 
     //ToDo: set up file cache
     private @Nullable GreedyChunk checkFileCache(long chunkID) {
+        //NOTE! MAKE THIS METHOD AUTOMATICALLY UNPACK INTO RAM CACHE
         return null;
     }
 
     private GreedyChunk createChunkInRAM(long ID){
+        System.out.println("Creating GreedyChunk["+ID+"] in ram");
         return addChunkToRAMCache(new GreedyChunk(ID));
     }
 
-
+    @Override
+    public String toString() {
+        return "GreedyWorld[all chunks in ram: " + Arrays.toString(greedyWorldCache) + "]";
+    }
 
     public static long isolateChunkID(long globalID){
         return (globalID >>> 16) << 16;
