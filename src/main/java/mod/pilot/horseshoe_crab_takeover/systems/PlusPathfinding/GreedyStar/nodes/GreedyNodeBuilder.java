@@ -32,15 +32,16 @@ public class GreedyNodeBuilder {
         } else gChunk = optionalChunk;
     }*/
 
-    public static void evaluateSection(Level level, QuadSpace section,
+/*    public static void evaluateSection(Level level, QuadSpace section,
                                        GreedyNodeEvaluator evaluator,
                                        boolean assumeWithinBounds){
         if (assumeWithinBounds) evaluateContainedSection(level, section, evaluator);
         else for (QuadSpace qSpace : sectionByChunkBoundaries(section, true,true)) {
             evaluateContainedSection(level, qSpace, evaluator);
         }
-    }
-    private static void evaluateContainedSection(Level level, QuadSpace section,
+    }*/
+
+/*    private static void evaluateContainedSection(Level level, QuadSpace section,
                                                  GreedyNodeEvaluator evaluator){
         Vector3i minor = section.minor();
         int chunkX = minor.x >> 4, chunkZ = minor.z >> 4;
@@ -177,7 +178,7 @@ public class GreedyNodeBuilder {
             //TODO: Finish the node evaluation and assign blueprints to their respective maps
             // or just make a new map idfk
         }
-    }
+    }*/
 
     /**
      * Takes a QuadSpace that (might) extend over (Greedy) Chunk boundaries and slices

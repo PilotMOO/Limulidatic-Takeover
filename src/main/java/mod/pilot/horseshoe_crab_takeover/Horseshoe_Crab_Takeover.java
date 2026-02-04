@@ -6,6 +6,7 @@ import mod.pilot.horseshoe_crab_takeover.items.HorseshoeItems;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyChunk;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyFileManager;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -21,7 +22,6 @@ import java.util.Random;
 public class Horseshoe_Crab_Takeover
 {
     public static final String MOD_ID = "horseshoe_crab_takeover";
-    //private static final Logger LOGGER = LogUtils.getLogger();
 
     public static HorseshoeWorldData activeData;
 
@@ -97,5 +97,15 @@ public class Horseshoe_Crab_Takeover
             DataHelper.mergeBitSentences(pack, 32, inks, 70);
         } catch (DataHelper.InvalidBitWriteOperation ignored) {}
         System.out.println("Bits post-write: [" + Long.toBinaryString(pack[0]) +", "+ Long.toBinaryString(pack[1]) +", "+ Long.toBinaryString(pack[2]) +", "+ Long.toBinaryString(pack[3]) +"]");*/
+
+        //Testing distance checks
+        QuadSpace q1, q2;
+        q1 = new QuadSpace(0,0,0,1,1,1);
+        q2 = new QuadSpace(1,0,-10,1,1,20);
+        System.out.printf("\nQUADSPACES Q1 %s AND Q2 %s", q1, q2);
+        double dist = q1.distanceEdgeToEdge(q2);
+        System.out.println("DISTANCE BETWEEN TWO: " + dist);
+        QuadSpace q3 = new QuadSpace(4,6,2,1,5,1);
+        System.out.println("q3: " + q3 + ", dist to q1: " + q1.distanceEdgeToEdge(q3));
     }
 }

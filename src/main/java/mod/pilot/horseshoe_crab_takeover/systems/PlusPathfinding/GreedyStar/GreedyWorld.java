@@ -89,6 +89,11 @@ public class GreedyWorld {
     public GreedyChunk retrieveFromWorldCoordinates(Vec3 pos){
         return retrieveOrCreateGreedyChunk(GreedyChunk.computeCoordinatesToID(pos));
     }
+    public GreedyChunk retrieveFromWorldCoordinates(double worldX, double worldZ){
+        return retrieveOrCreateGreedyChunk(
+                GreedyChunk.computeCoordinatesToID(
+                        (int)Math.floor(worldX), (int)Math.floor(worldZ)));
+    }
     public GreedyChunk retrieveFromWorldCoordinates(int worldX, int worldZ){
         return retrieveOrCreateGreedyChunk(GreedyChunk.computeCoordinatesToID(worldX, worldZ));
     }

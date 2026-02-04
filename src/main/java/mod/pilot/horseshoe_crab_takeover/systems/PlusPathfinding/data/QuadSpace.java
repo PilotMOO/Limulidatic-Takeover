@@ -21,13 +21,13 @@ public class QuadSpace{
 
     public QuadSpace(int minorX, int minorY, int minorZ, int sizeX, int sizeY, int sizeZ){
         this.minorX = minorX; this.minorY = minorY; this.minorZ = minorZ;
-        this.sizeX = sizeX; this.sizeZ = sizeZ; this.sizeY = sizeY;
+        this.sizeX = sizeX; this.sizeY = sizeY; this.sizeZ = sizeZ;
     }
     public QuadSpace(int minorX, int minorY, int minorZ){
         this(minorX, minorY, minorZ, 0, 0, 0);
     }
     public QuadSpace(Vector3i minor, int x, int y, int z) {
-        this(minor.x, minor.y, minor.z, x, y, x);
+        this(minor.x, minor.y, minor.z, x, y, z);
     }
 
     /**
@@ -54,8 +54,10 @@ public class QuadSpace{
      */
     public void stepX(int count){
         if (count < 0){
+            System.out.println("STEPPING NEGATIVE X FROM " + minorX + ", size " + sizeX);
             minorX += count;
             sizeX -= count;
+            System.out.println("TO " + minorX + ", size " + sizeX);
         } else sizeX += count;
     }
     /**
@@ -142,15 +144,15 @@ public class QuadSpace{
     public boolean contains(BlockPos point){return contains(point.getX(), point.getY(), point.getZ());}
     public boolean contains(int x, int y, int z){
         if (invalid()) return false;
-        return x >= minorX && (x - minorX) <= sizeX
-                && y >= minorY && (y - minorY) <= sizeY
-                && z >= minorZ && (z - minorZ) <= sizeZ;
+        return x >= minorX && (x - minorX) < sizeX
+                && y >= minorY && (y - minorY) < sizeY
+                && z >= minorZ && (z - minorZ) < sizeZ;
     }
     public boolean contains(double x, double y, double z){
         if (invalid()) return false;
-        return x >= minorX && (x - minorX) <= sizeX
-                && y >= minorY && (y - minorY) <= sizeY
-                && z >= minorZ && (z - minorZ) <= sizeZ;
+        return x >= minorX && (x - minorX) < sizeX
+                && y >= minorY && (y - minorY) < sizeY
+                && z >= minorZ && (z - minorZ) < sizeZ;
     }
     public boolean contains(QuadSpace qSpace){
         if (this.invalid() || qSpace.invalid()) return false;
@@ -169,9 +171,9 @@ public class QuadSpace{
                 majorZ = minorZ + sizeZ;
         //Check if the minor overshoots the other major
         // or if the major undershoots the other minor for each axis
-        if (minorX > otherMajorX || majorX < qSpace.minorX) return false;
-        if (minorY > otherMajorY || majorY < qSpace.minorY) return false;
-        return minorZ <= otherMajorZ && majorZ >= qSpace.minorZ;
+        if (minorX >= otherMajorX || majorX <= qSpace.minorX) return false;
+        if (minorY >= otherMajorY || majorY <= qSpace.minorY) return false;
+        return minorZ < otherMajorZ && majorZ > qSpace.minorZ;
     }
     public boolean intersects(int x, int y, int z, int sizeX, int sizeY, int sizeZ){
         if (invalid()) return false;
@@ -184,9 +186,9 @@ public class QuadSpace{
                 majorZ = minorZ + this.sizeZ;
         //Check if the minor overshoots the other major
         // or if the major undershoots the other minor for each axis
-        if (minorX > otherMajorX || majorX < x) return false;
-        if (minorY > otherMajorY || majorY < y) return false;
-        return minorZ <= otherMajorZ && majorZ >= z;
+        if (minorX >= otherMajorX || majorX <= x) return false;
+        if (minorY >= otherMajorY || majorY <= y) return false;
+        return minorZ < otherMajorZ && majorZ > z;
     }
     public boolean intersectInflated(QuadSpace qSpace, double inflation){
         if (invalid()) return false;
@@ -197,18 +199,18 @@ public class QuadSpace{
         double majorX = minorX + sizeX + inflation,
                 majorY = minorY + sizeY + inflation,
                 majorZ = minorZ + sizeZ + inflation;
-        if ((minorX - half) > otherMajorX || majorX < (qSpace.minorX - half)) return false;
-        if ((minorY - half) > otherMajorY || majorY < (qSpace.minorY - half)) return false;
-        return (minorZ - half) <= otherMajorZ && majorZ >= (qSpace.minorZ - half);
+        if ((minorX - half) >= otherMajorX || majorX <= (qSpace.minorX - half)) return false;
+        if ((minorY - half) >= otherMajorY || majorY <= (qSpace.minorY - half)) return false;
+        return (minorZ - half) < otherMajorZ && majorZ > (qSpace.minorZ - half);
     }
 
     public boolean containsLargePoint(int x, int y, int z, double pointSize){
         if (invalid() || pointSize <= 0) return false;
         double pointHalf = pointSize / 2;
         Vector3i major = major();
-        return x >= minorX - pointHalf && x <= major.x + pointHalf
-                && y >= minorY - pointHalf && y <= major.y + pointHalf
-                && z >= minorZ - pointHalf && z <= major.z + pointHalf;
+        return x >= minorX - pointHalf && x < major.x + pointHalf
+                && y >= minorY - pointHalf && y < major.y + pointHalf
+                && z >= minorZ - pointHalf && z < major.z + pointHalf;
     }
 
     /**

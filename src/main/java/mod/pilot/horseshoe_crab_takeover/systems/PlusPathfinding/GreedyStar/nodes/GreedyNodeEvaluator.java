@@ -3,8 +3,10 @@ package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nod
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyChunk;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyMap;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyWorld;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
@@ -131,15 +133,6 @@ public abstract class GreedyNodeEvaluator {
         // Check for other nodes within other GreedyMaps in the same GChunk
         // to ensure that any given position isn't already covered
 
-        //THERE IS AN ISSUE WITH GENERATING NODES WHERE THE INITIAL POSITION SEEMS
-        // TO BE OFFSET BY 1 ALONG THE NEGATIVE Z AXIS, MIGHT BE FOR BOTH X AND Z
-        //MIGHT BE AND ISSUE WITH THE REWORKED TOGREEDYCHUNKCONTEXT METHOD
-        // TO COMPENSATE FOR HOW NEGATIVES WORK
-        //FURTHER TESTING IS NEEDED, I HAVE ONLY DEBUGGED IN NEGATIVE RELATIVE CHUNKS
-        //I NEED TO GO TO WORK SO I CANT DO ANY MORE DEBUGGING, FIX THIS LATER
-
-        System.out.println("Min world: " + MinWorld + ", max world: " + MaxWorld + ", both: " + (MaxWorld - MinWorld));
-
         if (!ignoreChecks){
             //Y position out of the bounds of the dimension?
             if (worldY <= MinWorld || worldY >= MaxWorld) {
@@ -168,9 +161,10 @@ public abstract class GreedyNodeEvaluator {
             }
         }
 
-        byte chunkContextX = toGreedyChunkContext(worldX),
-                chunkContextZ = toGreedyChunkContext(worldZ);
-        int chunkRelativeX = chunkContextX / 16, chunkRelativeZ = chunkContextZ / 16;
+        final byte chunkContextX = toGreedyChunkContext(worldX < 0 ? worldX+1 : worldX),
+                chunkContextZ = toGreedyChunkContext(worldZ < 0 ? worldZ+1 : worldZ);
+        int chunkRelativeX = chunkContextX / 16,
+                chunkRelativeZ = chunkContextZ / 16;
 
         //System.out.println("chunk xz context is [" + chunkContextX + ", " + chunkContextZ + "]");
 
@@ -207,7 +201,9 @@ public abstract class GreedyNodeEvaluator {
         if (evaluatePosition(cX % 16, sectY, cZ % 16)){
             //System.out.println("INITIAL CHECK WORKED");
             curGNode = GreedyNode.buildSkeleton(chunkContextX, worldY, chunkContextZ);
-
+            System.out.println("BEFORE ANYTHING: " + curGNode);
+            System.out.println("cX vs. chunkContextX[" + cX + ", " + chunkContextX + "]");
+            System.out.println("cZ vs. chunkContextZ[" + cZ + ", " + chunkContextZ + "]");
             /*------------------
             Negative X
             ------------------*/
@@ -218,7 +214,7 @@ public abstract class GreedyNodeEvaluator {
                     for (int i = 0; i < mapCount; i++) {
                         GreedyNode gNode = sisters[i];
                         System.out.println("cX=" + cX + ", checking node " + gNode);
-                        if (gNode.contains(cX, worldY, cX)){
+                        if (gNode.contains(cX, worldY, cZ)){
                             System.out.println("Another node contains pos");
                             overlap = true;
                             sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_WEST);
@@ -254,6 +250,7 @@ public abstract class GreedyNodeEvaluator {
                 }
                 else break; //Otherwise, stop checking backwards X values
             }
+            System.out.println("negX done, result: " + curGNode);
             //move the current X position back to the front of the QuadSpace
             // (the initial starting point)
             cX = chunkContextX;
@@ -269,6 +266,28 @@ public abstract class GreedyNodeEvaluator {
             Positive X
             ------------------*/
             while(++cX < 64){ //Step forward
+                if (checkGMap) {
+                    boolean overlap = false;
+                    for (int i = 0; i < mapCount; i++) {
+                        //No need to evaluate this one if we've already evaluated it
+                        // for a different axis. It can't be adjacent on more than 1
+                        // axis without also overlapping the initial position
+                        if (sisterRelative[i] != 0) continue;
+                        GreedyNode gNode = sisters[i];
+                        System.out.println("cX=" + cX + ", checking node " + gNode);
+                        if (gNode.contains(cX, worldY, cZ)){
+                            System.out.println("Another node contains pos");
+                            overlap = true;
+                            sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_EAST);
+                            break;
+                        }
+                    }
+                    if (overlap) {
+                        System.out.println("POSITIVE X BROKE EARLY BECAUSE OF NODE OVERLAP");
+                        break;
+                    }
+                }
+
                 if (cX / 16 > chunkRelativeX) {
                     changedChunks = true;
                     updatedViewedMCChunk(++chunkRelativeX, chunkRelativeZ, worldY);
@@ -282,11 +301,12 @@ public abstract class GreedyNodeEvaluator {
                 }
                 else break;
             }
+            System.out.println("posX done, result: " + curGNode);
             //Set the current X to the minor of the GreedyNode (lowest valid X value)
             cX = curGNode.minorX;
             if (changedChunks){
-                System.out.println("POS X CHANGED CHUNK, FIXING FROM "
-                        + chunkRelativeX + " to " + cX / 16);
+                /*System.out.println("POS X CHANGED CHUNK, FIXING FROM "
+                        + chunkRelativeX + " to " + cX / 16);*/
                 chunkRelativeX = cX / 16;
                 updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 changedChunks = false;
@@ -308,6 +328,25 @@ public abstract class GreedyNodeEvaluator {
             ------------------*/
             //Step back
             while(--cZ > -1){
+                if (checkGMap) {
+                    boolean overlap = false;
+                    for (int i = 0; i < mapCount; i++) {
+                        if (sisterRelative[i] != 0) continue;
+                        GreedyNode gNode = sisters[i];
+                        System.out.println("cZ=" + cZ + ", checking node " + gNode);
+                        if (gNode.intersects(cX, worldY, cZ, curGNode.sizeX, 1, 1)){
+                            System.out.println("Another node contains pos");
+                            overlap = true;
+                            sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_NORTH);
+                            break;
+                        }
+                    }
+                    if (overlap) {
+                        System.out.println("NEGATIVE Z BROKE EARLY BECAUSE OF NODE OVERLAP");
+                        break;
+                    }
+                }
+
                 //IF the minecraft chunk index relative within the GreedyChunk changes
                 if (cZ / 16 < chunkRelativeZ) {
                     //Update the viewed chunk
@@ -333,7 +372,7 @@ public abstract class GreedyNodeEvaluator {
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
                     if (!evaluatePosition(checkX % 16, sectY, cZ % 16)) {
-                        System.out.println("Negative Z didnt like those coords");
+                        //System.out.println("Negative Z didnt like those coords");
                         valid = false;
                         break;
                     }
@@ -350,6 +389,7 @@ public abstract class GreedyNodeEvaluator {
                 if (valid) curGNode.stepZ(-1);
                 else break;
             }
+            System.out.println("negZ done, result: " + curGNode);
             cZ = chunkContextZ;
             if (changedChunks) {
                 chunkRelativeX = cX / 16;
@@ -364,6 +404,25 @@ public abstract class GreedyNodeEvaluator {
             Positive Z
             ------------------*/
             while(++cZ < 64){
+                if (checkGMap) {
+                    boolean overlap = false;
+                    for (int i = 0; i < mapCount; i++) {
+                        if (sisterRelative[i] != 0) continue;
+                        GreedyNode gNode = sisters[i];
+                        System.out.println("cZ=" + cZ + ", checking node " + gNode);
+                        if (gNode.intersects(cX, worldY, cZ, curGNode.sizeX, 1, 1)){
+                            System.out.println("Another node contains pos");
+                            overlap = true;
+                            sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_SOUTH);
+                            break;
+                        }
+                    }
+                    if (overlap) {
+                        System.out.println("POSITIVE Z BROKE EARLY BECAUSE OF NODE OVERLAP");
+                        break;
+                    }
+                }
+
                 //IF the minecraft chunk index relative within the GreedyChunk changes
                 if (cZ / 16 > chunkRelativeZ) {
                     //Update the viewed chunk
@@ -373,7 +432,6 @@ public abstract class GreedyNodeEvaluator {
                 //Cycle through all X positions
                 boolean valid = true; //Flag for if any blocks are invalid
                 for (byte i = 0; i < curGNode.sizeX; i++){
-
                     byte checkX = (byte)(cX + i);
                     int upCRX = checkX / 16;
                     //System.out.println("har har har har: checkX " + checkX);
@@ -383,7 +441,7 @@ public abstract class GreedyNodeEvaluator {
                         updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                     }
                     if (!evaluatePosition(checkX % 16, sectY, cZ % 16)) {
-                        System.out.println("positive Z didnt like those coords");
+                        //System.out.println("positive Z didnt like those coords");
                         valid = false;
                         break;
                     }
@@ -397,9 +455,10 @@ public abstract class GreedyNodeEvaluator {
                     updatedViewedMCChunk(chunkRelativeX, chunkRelativeZ, worldY);
                 }
 
-                if (valid) curGNode.stepZ(1);
+                if (valid) curGNode.stepZ();
                 else break;
             }
+            System.out.println("posZ done, result: " + curGNode);
             /*------------------*/
 
             //CHECKING Y AXIS//
@@ -432,6 +491,25 @@ public abstract class GreedyNodeEvaluator {
                     //Remember! We are checking Y level, so this time it's capped by the
                     // Dimension's Min|Max Y level and not the GreedyChunk's x64
                     while (--cWorldY > MinWorld) {
+                        if (checkGMap) {
+                            boolean overlap = false;
+                            for (int i = 0; i < mapCount; i++) {
+                                if (sisterRelative[i] != 0) continue;
+                                GreedyNode gNode = sisters[i];
+                                System.out.println("cWorldY=" + cWorldY + ", checking node " + gNode);
+                                if (gNode.intersects(cX, cWorldY, cZ, curGNode.sizeX, 1, curGNode.sizeZ)){
+                                    System.out.println("Another node contains pos");
+                                    overlap = true;
+                                    sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_DOWN);
+                                    break;
+                                }
+                            }
+                            if (overlap) {
+                                System.out.println("NEGATIVE Y BROKE EARLY BECAUSE OF NODE OVERLAP");
+                                break;
+                            }
+                        }
+
                         //Delta = change
                         int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
                         if (curChunkIndex != chunkIndexDelta) {
@@ -491,6 +569,25 @@ public abstract class GreedyNodeEvaluator {
                         curSection = getSection(curChunk, cWorldY = worldY);
                     }
                     while (++cWorldY < MaxWorld) {
+                        if (checkGMap) {
+                            boolean overlap = false;
+                            for (int i = 0; i < mapCount; i++) {
+                                if (sisterRelative[i] != 0) continue;
+                                GreedyNode gNode = sisters[i];
+                                System.out.println("cWorldY=" + cWorldY + ", checking node " + gNode);
+                                if (gNode.intersects(cX, cWorldY, cZ, curGNode.sizeX, 1, curGNode.sizeZ)){
+                                    System.out.println("Another node contains pos");
+                                    overlap = true;
+                                    sisterRelative[i] = (byte)(gNode.nodeID | GreedyMap.MapContext.ID_UP);
+                                    break;
+                                }
+                            }
+                            if (overlap) {
+                                System.out.println("POSITIVE Y BROKE EARLY BECAUSE OF NODE OVERLAP");
+                                break;
+                            }
+                        }
+
                         //Delta = change
                         System.out.println("[POS Y] cWorldY is " + cWorldY);
                         int chunkIndexDelta = curChunk.getSectionIndex(cWorldY);
@@ -532,17 +629,101 @@ public abstract class GreedyNodeEvaluator {
                         if (valid) curGNode.stepY();
                         else break;
                     }
-                    //There is no more chunk modification checks because the Positive Y axis
-                    // is the last one checked
+                    //There is no more chunk modification checks because
+                    // the positive Y axis is the last one checked
                 }
                 /*------------------*/
             }
 
-            if (gMap == null) {
-                System.out.println("BUILDING NEW MAP");
-                gMap = greedyChunk.buildNewMap();
+            if (gMap == null) gMap = greedyChunk.buildNewMap();
+            else if (checkGMap){
+                for (int i = 0; i < mapCount; i++) {
+                    byte id = sisterRelative[i];
+                    if (id != 0) continue;
+                    GreedyNode gNode = sisters[i];
+                    double dist = gNode.distanceEdgeToEdge(curGNode);
+                    if (dist != 0) continue;
+                    int majorX = curGNode.minorX + curGNode.sizeX,
+                            majorY = curGNode.minorY + curGNode.sizeY,
+                            majorZ = curGNode.minorZ + curGNode.sizeZ;
+                    int oMajorX = gNode.minorX + gNode.sizeX,
+                            oMajorY = gNode.minorY + gNode.sizeY,
+                            oMajorZ = gNode.minorZ + gNode.sizeZ;
+                    boolean eval = false;
+                    boolean corner = false;
+                    id = gNode.nodeID;
+                    //West, negative X
+                    if (curGNode.minorX > oMajorX){
+                        eval = true;
+                        id |= GreedyMap.MapContext.ID_WEST;
+                    }
+                    //East, positive X
+                    else if (majorX < gNode.minorX){
+                        eval = true;
+                        id |= GreedyMap.MapContext.ID_EAST;
+                    }
+                    //Down, negative Y
+                    if (curGNode.minorY > oMajorY) {
+                        if (eval) corner = true;
+                        else {
+                            eval = true;
+                            id |= GreedyMap.MapContext.ID_DOWN;
+                        }
+                    }
+                    //Up, positive Y
+                    else if (majorY < gNode.minorY) {
+                        if (eval) corner = true;
+                        else {
+                            eval = true;
+                            id |= GreedyMap.MapContext.ID_UP;
+                        }
+                    }
+                    //North, negative Z //why the fuck are these two flipped
+                    if (curGNode.minorZ > oMajorZ) {
+                        if (eval) corner = true;
+                        else {
+                            eval = true;
+                            id |= GreedyMap.MapContext.ID_NORTH;
+                        }
+                    }
+                    //South, positive Z /**/
+                    else if (majorZ < gNode.minorZ) {
+                        if (eval) corner = true;
+                        else {
+                            eval = true;
+                            id |= GreedyMap.MapContext.ID_SOUTH;
+                        }
+                    }
+
+                    if (corner) {
+                        System.out.println("GNODE " + gNode + " IS CORNER RELATIVE TO CURGNODE");
+                        sisterRelative[i] = -1;
+                        //I dont have a way to deal with corners rn
+                    }
+                    else sisterRelative[i] = id;
+                }
             }
-            gMap.addNode(curGNode);
+            GreedyMap.MapContext context = gMap.addNode(curGNode);
+            if (checkGMap){
+                byte curID = curGNode.nodeID;
+                for (int i = 0; i < mapCount; i++) {
+                    byte id = sisterRelative[i];
+                    if (id != -1){
+                        GreedyMap.MapContext otherContext = gMap.contextFromID(id);
+                        if (otherContext == null){
+                            logger.log(String.format("OOPS! attempted to evaluate relative direction for a new gNode %s for the node ID[%d] but it seems like the supplied GreedyMap does NOT have a node that matches that ID! Something must have gone horribly wrong...", curGNode, id), true);
+                            continue;
+                        }
+                        System.out.println("ADDING NODE CONTEXT " + BitwiseDataHelper.parseByteToBinary(id) + " TO CURGNODE");
+                        context.addElementByComputedID(id);
+                        otherContext.addElementByID(curID,
+                                GreedyMap.MapContext.oppositeDirection(
+                                        GreedyMap.MapContext.isolateDirection(id)));
+                        System.out.println("OTHER context after adding new thinghdfaskhfsfs " + otherContext);
+                    }
+                }
+                System.out.println("CURGNODE NOW HAS CONTEXTS OF " + context);
+            }
             logger.log(String.format("Successfully evaluated position [%d, %d, %d] with resulting GreedyNode of %s with GlobalID[%d]%n)", worldX, worldY, worldZ, curGNode.toString(), greedyChunk.computeGlobalID(gMap.computeMapLevelID(curGNode.nodeID))), false);
             System.out.println("YIPPEE!!!");
             System.out.println("GChunk is " + greedyChunk);

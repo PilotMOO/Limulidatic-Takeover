@@ -44,6 +44,79 @@ public class BitwiseDataHelper {
         return builder.toString();
     }
 
+    /**Parses an array of bytes into a legible binary format, similar to
+     * {@link java.util.Arrays#toString(byte[])} but formats each entry via
+     * {@link BitwiseDataHelper#parseByteToBinary(byte)}
+     * @param a an array of bytes to parse into binary strings
+     * @return a string of all entries from the argument formatted between '[]' with
+     * each entry parsed into binary according to {@link BitwiseDataHelper#parseByteToBinary(byte)}
+     * separated by a comma and space
+     */
+    public static String parseByteArrayToBinary(byte[] a) {
+        if (a == null)
+            return "null";
+        int iMax = a.length - 1;
+        if (iMax == -1)
+            return "[]";
+
+        StringBuilder b = new StringBuilder();
+        b.append('[');
+        for (int i = 0; ; i++) {
+            b.append(parseByteToBinary(a[i]));
+            if (i == iMax)
+                return b.append(']').toString();
+            b.append(", ");
+        }
+    }
+    /**Parses an array of integers into a legible binary format, similar to
+     * {@link java.util.Arrays#toString(int[])} but formats each entry via
+     * {@link BitwiseDataHelper#parseIntToBinary(int)}
+     * @param a an array of integers to parse into binary strings
+     * @return a string of all entries from the argument formatted between '[]' with
+     * each entry parsed into binary according to {@link BitwiseDataHelper#parseIntToBinary(int)}
+     * separated by a comma and space
+     */
+    public static String parseIntArrayToBinary(int[] a) {
+        if (a == null)
+            return "null";
+        int iMax = a.length - 1;
+        if (iMax == -1)
+            return "[]";
+
+        StringBuilder b = new StringBuilder();
+        b.append('[');
+        for (int i = 0; ; i++) {
+            b.append(parseIntToBinary(a[i]));
+            if (i == iMax)
+                return b.append(']').toString();
+            b.append(", ");
+        }
+    }
+    /**Parses an array of longs into a legible binary format, similar to
+     * {@link java.util.Arrays#toString(long[])} but formats each entry via
+     * {@link BitwiseDataHelper#parseLongToBinary(long)}
+     * @param a an array of long to parse into binary strings
+     * @return a string of all entries from the argument formatted between '[]' with
+     * each entry parsed into binary according to {@link BitwiseDataHelper#parseLongToBinary(long)}
+     * separated by a comma and space
+     */
+    public static String parseLongArrayToBinary(long[] a) {
+        if (a == null)
+            return "null";
+        int iMax = a.length - 1;
+        if (iMax == -1)
+            return "[]";
+
+        StringBuilder b = new StringBuilder();
+        b.append('[');
+        for (int i = 0; ; i++) {
+            b.append(parseLongToBinary(a[i]));
+            if (i == iMax)
+                return b.append(']').toString();
+            b.append(", ");
+        }
+    }
+
     /**
      * Sets the bit of a "word" (long) at the given offset to whatever the bit argument is
      * <p>This method is a bit needlessly performance-hungry for how little it does. Sucks, but it also isn't... THAT unoptimized...</p>

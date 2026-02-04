@@ -52,12 +52,11 @@ public class GreedyChunkRelativeWand extends Item {
         if (pLevel.isClientSide) return super.use(pLevel, player, pUsedHand);
 
         Vec3 pos = player.position();
-        int x = (int) pos.x, z = (int) pos.z;
         gChunk = GreedyWorld.WORLD_DEFAULT()
-                .retrieveFromWorldCoordinates(x, z);
+                .retrieveFromWorldCoordinates(pos.x, pos.z);
         evaluator.setupGChunkEvaluation(pLevel, gChunk);
-        byte relX = (byte) (GreedyNodeEvaluator.toGreedyChunkContext(x) / 16),
-                relZ = (byte) (GreedyNodeEvaluator.toGreedyChunkContext(z) / 16);
+        byte relX = (byte) (GreedyNodeEvaluator.toGreedyChunkContext((int)Math.floor(pos.x)) / 16),
+                relZ = (byte) (GreedyNodeEvaluator.toGreedyChunkContext((int)Math.floor(pos.z)) / 16);
         player.displayClientMessage(Component.literal(
                     "You are in a chunk context of [" + relX + ", " + relZ + "]"
         ), false);

@@ -2,6 +2,7 @@ package mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar;
 
 import mod.pilot.horseshoe_crab_takeover.data.DataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.nodes.GreedyNode;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.core.Direction;
 import org.jetbrains.annotations.NotNull;
@@ -12,7 +13,7 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class GreedyMap {
-    public static int DEFAULT_MapExtensionRange = 4;
+    public static int DEFAULT_MapExtensionRange = 12;
     public int MapExtensionRange;
 
     public GreedyMap(byte mapID){
@@ -108,11 +109,12 @@ public class GreedyMap {
 
     public int count() { return nodes.size; }
     public MapContext.Container nodes;
-    public void addNode(GreedyNode gNode){
+    public MapContext addNode(GreedyNode gNode){
         gNode.assignID(newNodeID());
         MapContext mapC = wrap(gNode);
         nodes.addContext(mapC);
         recomputeBounds = true;
+        return mapC;
         //ToDo: Add system to evaluate all other contained GNodes to see if they are
         // "sisters" to the newly added GNode, then update the MapContexts as needed
         // (will need to add a feature to QuadSpaces to be able to look for touching edges or faces...)
@@ -139,6 +141,7 @@ public class GreedyMap {
         recomputeBounds = true;
     }
     public @Nullable MapContext contextFromID(byte nodeID){
+        if (GreedyNode.containsDirectionalInfo(nodeID)) nodeID = MapContext.isolateID(nodeID);
         for (@NotNull Iterator<MapContext> it = nodes.contextIterator(); it.hasNext(); ) {
             MapContext context = it.next();
             if (context.node.nodeID == nodeID) return context;
@@ -146,6 +149,7 @@ public class GreedyMap {
         return null;
     }
     public @Nullable GreedyNode nodeFromID(byte nodeID){
+        if (GreedyNode.containsDirectionalInfo(nodeID)) nodeID = MapContext.isolateID(nodeID);
         for (GreedyNode node : nodes){
             if (node.nodeID == nodeID) return node;
         }
@@ -155,8 +159,7 @@ public class GreedyMap {
         return new MapContext(node);
     }
 
-    public static GreedyMap retrieveFromGlobalID(long globalID){
-
+    public static @Nullable GreedyMap retrieveFromGlobalID(long globalID){
         //Only check RAM and File cache, we don't want to make a new chunk if there isn't one
         GreedyChunk gChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveOnly(globalID);
         if (gChunk == null) return null; //Womp, no GChunks exist for that ID
@@ -204,10 +207,16 @@ public class GreedyMap {
             insertElement(computeElementID(element, direction),
                     iterateUntilValidIndex(direction));
         }
+        public void addElementByID(byte isoNodeID, byte ID){
+            insertElement((byte)(isoNodeID | ID), iterateUntilValidIndex(ID));
+        }
+        public void addElementByComputedID(byte element){
+            insertElement(element, iterateUntilValidIndex(element));
+        }
 
         public void insertElement(byte id, int index){
             if (index >= size){
-                growArray(size - index);
+                growArray((size + 1) - index);
             }
             else {
                 growArray(1);
@@ -217,7 +226,10 @@ public class GreedyMap {
         }
 
         public byte[] getAllIDsOfDirection(Direction direction){
-            byte id_pre = idPrependByDirection(direction);
+            return getAllIDsOfDirection(idPrependByDirection(direction));
+        }
+        public byte[] getAllIDsOfDirection(byte id_pre){
+            if (id_pre > 6) id_pre = isolateDirection(id_pre);
             byte[] toReturn = new byte[size];
             int count = 0;
             for (int i = 0; i < size; i++){
@@ -232,7 +244,9 @@ public class GreedyMap {
             return (byte)(id | idPrependByDirection(direction));
         }
         public int amountForDirection(Direction direction){
-            byte id_pre = idPrependByDirection(direction);
+            return amountForDirection(idPrependByDirection(direction));
+        }
+        public int amountForDirection(byte id_pre){
             int count = 0;
             byte directionID;
             for (byte id : relativeIDs){
@@ -242,14 +256,17 @@ public class GreedyMap {
                     else break;
                 }
             }
-            if (count > 63) System.err.printf("WARNING! Amount of Nodes within NodeMap %s for the direction %s exceeded the allocated amount supported by the ID system! [%h]%n", this, direction, 63);
+            if (count > 63) System.err.printf("WARNING! Amount of Nodes within NodeMap %s for the direction %s exceeded the allocated amount supported by the ID system! [%h]%n", this, directionFromId(id_pre), 63);
             return count;
         }
-        @SuppressWarnings("ExtractMethodRecommender")
         public int iterateUntilValidIndex(Direction direction){
-            //Get the target prepend for this direction:
-            //[0,1,2,3,4,5] for [Down,Up,North,South,West,East] respectively
-            byte id_pre = idPrependByDirection(direction);
+            return iterateUntilValidIndex(idPrependByDirection(direction));
+        }
+        public int iterateUntilValidIndex(byte id){
+            if (size == 0) return 0;
+            if (id > 6){
+                id = isolateDirection(id);
+            }
             int index = -1; //current index, set to -1 the first cycle doesn't skip index 0
             byte cID; //The current ID of the element
             do{
@@ -258,16 +275,17 @@ public class GreedyMap {
                 //If the index isn't out of bounds
                 //AND the direction prepend of the current ID is equal or less than
                 //the target prepend, continue
-                    index < size && isolateDirection(cID) <= id_pre
+                    index < size && isolateDirection(cID) <= id
             );
             //Stops upon reaching the end of the array
-            //OR finding the index immediately after the last element that
-            //shares the same directional prepend
-            return index; //Returns the index, this is where we want to place the next object
+            // OR finding the index immediately after the last element
+            // that shares the same directional prepend
+            return index;
+            //Returns the index, this is where we want to place the next object
             //Will return either the next index after a grow if the map does NOT
-            //currently contain a direction with a value greater than the desired one,
-            //OR the index immediately after the last element with a smaller (or equal)
-            //directional index value to the new element
+            // currently contain a direction with a value greater than the desired one,
+            // OR the index immediately after the last element with a smaller (or equal)
+            // directional index value to the new element
         }
 
         private void growArray(int amount){
@@ -302,6 +320,22 @@ public class GreedyMap {
                 case EAST -> ID_EAST;
             };
         }
+        public static Direction directionFromId(byte id){
+            if (id > 5) id = isolateDirection(id);
+            return switch(id){
+                case 1 -> Direction.DOWN;
+                case 2 -> Direction.UP;
+                case 3 -> Direction.NORTH;
+                case 4 -> Direction.SOUTH;
+                case 5 -> Direction.WEST;
+                case 6 -> Direction.EAST;
+                default -> null;
+            };
+        }
+        public static byte oppositeDirection(byte id){
+            if (id % 2 == 0) return --id;
+            else return ++id;
+        }
         public static byte isolateDirection(byte id){
             //Takes the id and masks
             return (byte)(id & ID_MASK);
@@ -313,7 +347,7 @@ public class GreedyMap {
         @Override
         public String toString() {
             return "MapContext(" + "node:" + node
-                    + "){ relatives{"+size+"}[" + Arrays.toString(relativeIDs) + ']';
+                    + "){ relatives{"+size+"}[" + BitwiseDataHelper.parseByteArrayToBinary(relativeIDs) +"]}";
         }
 
         public static class Container implements Iterable<GreedyNode>{

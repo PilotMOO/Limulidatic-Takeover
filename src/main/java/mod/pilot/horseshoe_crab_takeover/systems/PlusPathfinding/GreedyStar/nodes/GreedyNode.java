@@ -119,38 +119,8 @@ public class GreedyNode extends QuadSpace {
     @Override
     public String toString() {
         return "GreedyNode[" + nodeID + "]{" +
-                "minor[" + minorZ + ", " + minorY + ", " + minorX +
-                "], size[" + sizeZ + ", " + sizeY + ", " + sizeX + "]}";
-    }
-
-    public static class Blueprint{
-        private static final byte zero = 0;
-        public Blueprint(Vector3i minor){
-            this(minor, zero, zero, zero);
-        }
-        public Blueprint(Vector3i minor, byte x, byte y, byte z){
-            this.minor = minor;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-        Vector3i minor;
-        public byte x, y, z;
-        public void extend(byte x, byte y, byte z){
-            this.x += x;
-            this.y += y;
-            this.z += z;
-        }
-        public void stepX(){x++;}
-        public void stepY(){y++;}
-        public void stepZ(){z++;}
-        public void shiftMinor(int x, int y, int z){minor.add(x, y, z);}
-
-        public QuadSpace quadSpace(){return new QuadSpace(minor, x, y, z);}
-
-        public GreedyNode build(GreedyMap gMap){
-            return new GreedyNode(gMap.newNodeID(), minor.x, minor.y, minor.z, x, y, z);
-        }
+                "minor[" + minorX + ", " + minorY + ", " + minorZ +
+                "], size[" + sizeX + ", " + sizeY + ", " + sizeZ + "]}";
     }
 }
 
