@@ -215,12 +215,13 @@ public class GreedyMap {
         }
 
         public void insertElement(byte id, int index){
+            System.out.println("INSERTING [" + BitwiseDataHelper.parseByteToBinary(id) + " INTO INDEX " + index + ", there are already " + size + " nodes here");
             if (index >= size){
                 growArray((size + 1) - index);
             }
             else {
                 growArray(1);
-                System.arraycopy(relativeIDs, index, relativeIDs, index + 1, size - index);
+                System.arraycopy(relativeIDs, index, relativeIDs, index + 1, size - (index + 1));
             }
             relativeIDs[index] = id;
         }
@@ -267,19 +268,22 @@ public class GreedyMap {
             if (id > 6){
                 id = isolateDirection(id);
             }
-            int index = -1; //current index, set to -1 the first cycle doesn't skip index 0
+            System.out.println("direction is " + BitwiseDataHelper.parseByteToBinary(id));
+            int index = 0; //current index, set to -1 the first cycle doesn't skip index 0
             byte cID; //The current ID of the element
             do{
-                cID = relativeIDs[++index]; //Cycle to the next id and index
+                cID = relativeIDs[index]; //Cycle to the next id and index
+                System.out.println(BitwiseDataHelper.parseByteToBinary(cID));
             } while (
                 //If the index isn't out of bounds
                 //AND the direction prepend of the current ID is equal or less than
                 //the target prepend, continue
-                    index < size && isolateDirection(cID) <= id
+                    ++index < size && isolateDirection(cID) <= id
             );
             //Stops upon reaching the end of the array
             // OR finding the index immediately after the last element
             // that shares the same directional prepend
+            System.out.println("INDEX " + index);
             return index;
             //Returns the index, this is where we want to place the next object
             //Will return either the next index after a grow if the map does NOT
@@ -337,8 +341,11 @@ public class GreedyMap {
             else return ++id;
         }
         public static byte isolateDirection(byte id){
+            byte asf =(byte)(id & ID_MASK);
+            System.out.println("Isolate dir " + BitwiseDataHelper.parseByteToBinary(id) + " iso to " + BitwiseDataHelper.parseByteToBinary(asf));
+            return asf; //remove all of this and uncomment return after debug
             //Takes the id and masks
-            return (byte)(id & ID_MASK);
+            //return (byte)(id & ID_MASK);
         }
         public static byte isolateID(byte id){
             return (byte)(id & ~ID_MASK);

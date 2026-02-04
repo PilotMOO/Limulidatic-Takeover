@@ -642,7 +642,11 @@ public abstract class GreedyNodeEvaluator {
                     if (id != 0) continue;
                     GreedyNode gNode = sisters[i];
                     double dist = gNode.distanceEdgeToEdge(curGNode);
-                    if (dist != 0) continue;
+                    if (dist != 0) {
+                        System.out.println("DISTANCE WASN'T ZERO: " + dist);
+                        sisterRelative[i] = -1;
+                        continue;
+                    }
                     int majorX = curGNode.minorX + curGNode.sizeX,
                             majorY = curGNode.minorY + curGNode.sizeY,
                             majorZ = curGNode.minorZ + curGNode.sizeZ;
@@ -653,17 +657,17 @@ public abstract class GreedyNodeEvaluator {
                     boolean corner = false;
                     id = gNode.nodeID;
                     //West, negative X
-                    if (curGNode.minorX > oMajorX){
+                    if (curGNode.minorX >= oMajorX){
                         eval = true;
                         id |= GreedyMap.MapContext.ID_WEST;
                     }
                     //East, positive X
-                    else if (majorX < gNode.minorX){
+                    else if (majorX <= gNode.minorX){
                         eval = true;
                         id |= GreedyMap.MapContext.ID_EAST;
                     }
                     //Down, negative Y
-                    if (curGNode.minorY > oMajorY) {
+                    if (curGNode.minorY >= oMajorY) {
                         if (eval) corner = true;
                         else {
                             eval = true;
@@ -671,7 +675,7 @@ public abstract class GreedyNodeEvaluator {
                         }
                     }
                     //Up, positive Y
-                    else if (majorY < gNode.minorY) {
+                    else if (majorY <= gNode.minorY) {
                         if (eval) corner = true;
                         else {
                             eval = true;
@@ -679,7 +683,7 @@ public abstract class GreedyNodeEvaluator {
                         }
                     }
                     //North, negative Z //why the fuck are these two flipped
-                    if (curGNode.minorZ > oMajorZ) {
+                    if (curGNode.minorZ >= oMajorZ) {
                         if (eval) corner = true;
                         else {
                             eval = true;
@@ -687,7 +691,7 @@ public abstract class GreedyNodeEvaluator {
                         }
                     }
                     //South, positive Z /**/
-                    else if (majorZ < gNode.minorZ) {
+                    else if (majorZ <= gNode.minorZ) {
                         if (eval) corner = true;
                         else {
                             eval = true;
@@ -700,7 +704,10 @@ public abstract class GreedyNodeEvaluator {
                         sisterRelative[i] = -1;
                         //I dont have a way to deal with corners rn
                     }
-                    else sisterRelative[i] = id;
+                    else {
+                        if (!eval) System.out.println("node id [" + BitwiseDataHelper.parseByteToBinary(id) + "] is not very skibiti");
+                        sisterRelative[i] = eval ? id : -1;
+                    }
                 }
             }
             GreedyMap.MapContext context = gMap.addNode(curGNode);
@@ -708,6 +715,7 @@ public abstract class GreedyNodeEvaluator {
                 byte curID = curGNode.nodeID;
                 for (int i = 0; i < mapCount; i++) {
                     byte id = sisterRelative[i];
+                    System.out.println("Cycling through all id's, current is " + id + ", [" + BitwiseDataHelper.parseByteToBinary(id) + "]");
                     if (id != -1){
                         GreedyMap.MapContext otherContext = gMap.contextFromID(id);
                         if (otherContext == null){
