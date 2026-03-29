@@ -133,7 +133,7 @@ public class GreedyChunk {
      * <p>{@code InBounds}: The target GreedyMap's {@link GreedyMap#mapBounds}
      * MUST contain the supplied coordinate. Strictest argument type.</p>
      * {@code MapExtension}: Same as {@code InBounds} but it adds the Map's
-     * {@link GreedyMap#MapExtensionRange} to the bounds.
+     * {@link GreedyMap#mapExtensionRange} to the bounds.
      * <p>{@code MapExtensionDefault} Same as prior, but ignores the personalized map extension and assumes the default value [{@link GreedyMap#DEFAULT_MapExtensionRange}]</p>
      * {@code AnyClosest} Returns the closest GreedyMap within the GChunk regardless of its distance to the point. Will still return {@code null} if the GChunk is empty
      * @param x the X coordinate of the reference area
@@ -155,7 +155,7 @@ public class GreedyChunk {
             }
             case MapExtension -> {
                 for (GreedyMap gMap : maps) {
-                    if (gMap.getBounds().containsLargePoint(x,y,z, gMap.MapExtensionRange * 2)){
+                    if (gMap.getBounds().containsLargePoint(x,y,z, gMap.mapExtensionRange * 2)){
                         yield gMap;
                     }
                 }
@@ -204,7 +204,7 @@ public class GreedyChunk {
             }
             case MapExtension -> {
                 for (GreedyMap gMap : maps){
-                    if (gMap.getBounds().intersectInflated(localizedQSpace, gMap.MapExtensionRange * 2)){
+                    if (gMap.getBounds().intersectInflated(localizedQSpace, gMap.mapExtensionRange * 2)){
                         yield gMap;
                     }
                 }
