@@ -10,8 +10,8 @@ import java.util.function.BiFunction;
  */
 public class DynamicBitPackage3d<T> extends BitPackage3d<T>{
     /**
-     * Creates a new DynamicBitPackage3d with a defined amount of bits per object and the size of the X/Y/Z axes
-     *<p>Also allows you to define the to/from bit methods via functions supplied in the constructor arguments</p>
+     * Creates a new DynamicBitPackage3d with a defined amount of bits per object and the size of the X/Y/Z axis
+     * <p>Also allows you to define the to/from bit methods via functions supplied in the constructor arguments</p>
      * @param bitsPerObject The amount of bits reserved per-object
      * @param sizeX         The size of the X axis in the flat-3d array
      * @param sizeY         The size of the Y axis in the flat-3d array

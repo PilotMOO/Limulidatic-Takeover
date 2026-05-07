@@ -1,5 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover.data;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -190,6 +191,7 @@ public class DataHelper {
         public static Vector3i from(Vec3 vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
         public static Vector3i from(Vector3d vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
         public static Vector3i from(Vector3f vector){ return new Vector3i(floor(vector.x), floor(vector.y), floor(vector.z)); }
+        public static Vector3i from(BlockPos bPos){ return new Vector3i(bPos.getX(), bPos.getY(), bPos.getZ()); }
 
         public static void copy(Vector3i paper, Vec3 ink){
             paper.x = floor(ink.x); paper.y = floor(ink.y); paper.z = floor(ink.z);
@@ -221,6 +223,67 @@ public class DataHelper {
         public static double flatDistance(Vector3i a, Vector3i b){
             double x = a.x - b.x, z = a.z - b.z;
             return Math.sqrt(x * x + z * z);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static class Arrays{
+        public static <I> I[] insertElement(I[] array, I element, int index){
+            int size = array.length;
+            if (index >= size){
+                array = growArray(array,size - (index + 1));
+            }
+            else {
+                array = growArray(array, 1);
+                System.arraycopy(array, index, array, index + 1, size - index);
+            }
+            array[index] = element;
+            return array;
+        }
+        public static <I> I[] growArray(I[] array, int count){
+            int newSize = array.length + count;
+            I[] newArray = (I[]) new Object[newSize];
+            System.arraycopy(array, 0, newArray, 0, array.length);
+            return newArray;
+        }
+        public static <I> I[] expandAndAdd(I[] array, I element){
+            int newSize = array.length + 1;
+            I[] newArray = (I[]) new Object[newSize];
+            if (newSize > 1) System.arraycopy(array, 0, newArray, 0, array.length);
+            newArray[newSize - 1] = element;
+            return newArray;
+        }
+        public static <I> I[] cap(I[] array){
+            int cIndex = array.length - 1;
+            while (--cIndex > -1 && array[cIndex] != null);
+            I[] newArray = (I[])new Object[cIndex + 1];
+            System.arraycopy(array, 0, newArray, 0, cIndex + 1);
+            return newArray;
+        }
+        public static <I> I[] removeAndDecrement(I[] array, int index){
+            if (index < array.length){
+                int newSize = array.length - 1;
+                I[] newArray = (I[]) new Object[newSize];
+                System.arraycopy(array, 0, newArray, 0, index - 1);
+                System.arraycopy(array, index + 1, newArray, index, array.length - index - 1);
+                return newArray;
+            } else return array;
+        }
+        public static <I> I[] putInNextValidSlot(I[] array, I element){
+            boolean _null = false;
+            int index = 0;
+            for (; index < array.length; index++) {
+                I i = array[index];
+                if (i == null) {
+                    _null = true;
+                    break;
+                }
+            }
+            if (!_null) return expandAndAdd(array, element);
+            else{
+                array[index] = element;
+                return array;
+            }
         }
     }
 
