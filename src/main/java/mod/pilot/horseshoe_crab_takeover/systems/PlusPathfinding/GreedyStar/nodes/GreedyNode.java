@@ -229,7 +229,7 @@ public class GreedyNode extends QuadSpace {
         };
     }
     public static Direction directionFromId(byte id){
-        if (id > 5) id = isolateDirection(id);
+        if (id > 6) id = isolateDirection(id);
         return switch(id){
             case 1 -> Direction.DOWN;
             case 2 -> Direction.UP;
@@ -265,7 +265,7 @@ public class GreedyNode extends QuadSpace {
      */
     public static @Nullable GreedyNode retrieveFromGlobalID(long globalID){
         //Only check RAM and File cache, we don't want to make a new chunk if there isn't one
-        GreedyChunk gChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveOnly(globalID);
+        GreedyChunk gChunk = GreedyWorld.greedyWorld_DEFAULT.retrieveOnly(GreedyWorld.isolateChunkID(globalID));
         if (gChunk == null) return null; //Womp, no GChunks exist for that ID
         byte mapID = GreedyWorld.isolateMapID(globalID); //Getting the GMap from the I.D....
         GreedyMap gMap = gChunk.getMap(mapID); /**/
