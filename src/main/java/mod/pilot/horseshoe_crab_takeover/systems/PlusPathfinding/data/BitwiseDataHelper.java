@@ -39,6 +39,7 @@ public class BitwiseDataHelper {
         //Then "Not" it again, so it goes back to the original BUT the part masked (which set the "NOT" to 1) is now 0
         return ~(~word | (1L << bitOffset));
     }
+
     /**
      * Writes a list of bits to the supplied word then returns the result. Does NOT modify any of the variables, just returns a new "word" (long)
      * <p>The "ink" must have all of its relevant bits secluded to the first bits of the word within the inkRange as defined by the last argument.
@@ -64,6 +65,76 @@ public class BitwiseDataHelper {
         long wordMasked = ~(~word | mask);
         return wordMasked | (ink << bitOffset); //Finally, "Or" in the ink (bits to write)
         //All of this could be compressed into 1 line but that makes it REALLY hard to read, so... prob wont
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRange(long, int, long, int)} but accepts an integer for the ink argument
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static long writeRange(final long word, final int bitOffset, final int ink, final int inkRange){
+        return ~(~word | ~(-1L << inkRange) << bitOffset) | ((long)ink << bitOffset); //All but the first writeRange(args...) methods will be compressed
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRange(long, int, long, int)} but accepts a byte for the ink argument
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static long writeRange(final long word, final int bitOffset, final byte ink, final int inkRange){
+        return ~(~word | ~(-1L << inkRange) << bitOffset) | ((long)ink << bitOffset);
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRange(long, int, long, int)} but for integers. Accepts an integer for the ink argument.
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static int writeRange(final int word, final int bitOffset, final int ink, final int inkRange){
+        return ~(~word | ~(-1 << inkRange) << bitOffset) | (ink << bitOffset);
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRange(int, int, int, int)}. Accepts a byte for the ink argument.
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static int writeRange(final int word, final int bitOffset, final byte ink, final int inkRange){
+        return ~(~word | ~(-1 << inkRange) << bitOffset) | (ink << bitOffset);
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRange(long, int, long, int)}, but for bytes. ONLY accepts bytes for the ink argument.
+     * @param word the "word" (long) to write to (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bit to modify. Index 0 is the first bit farthest to the right.
+     * @param ink the "word" containing all the bits to write to the original word. All relevant bits must start
+     *           from index 0 out to the supplied ink range-- all other bits MUST BE 0, otherwise corruption may occur.
+     * @param inkRange how many bits to expect to write from the ink. Do NOT add more bits to the ink than allocated by the inkRange.
+     *                It can corrupt bits outside the range otherwise.
+     * @return A new "word" that is identical to the "word" argument except for the bits at the supplied index being changed
+     * to the bits supplied in the ink. May be fully identical if the original bits were the same as the argument
+     */
+    public static byte writeRange(final byte word, final byte bitOffset, final byte ink, final byte inkRange){
+        return (byte)(~(~word | ~(-1 << inkRange) << bitOffset) | (ink << bitOffset));
     }
 
     /**
@@ -126,6 +197,7 @@ public class BitwiseDataHelper {
         }
         return sentence;
     }
+
     /**
      * Writes the bits in the supplied "ink" to the sentence at the supplied index, taking care of overflow when needed
      * <p>Simplified version of {@link BitwiseDataHelper#mergeBitSentences(long[], int, long[], int)} that takes just a long argument for the {@code ink}
@@ -140,13 +212,9 @@ public class BitwiseDataHelper {
      * @param inkRange how many bits from the ink to write to the sentence. Any bits (defined or otherwise) within the ink argument
      *                but outside the bounds defined will be ignored
      * @return a modified version of the sentence long array argument with the new bits written to the supplied index range
-     * @throws InvalidBitWriteOperation if the supplied inkRange argument extends beyond the scope of either the sentence or the ink
      * (argument {@code sentence} or {@code ink})
      */
-    public static long[] writeRangeToSentence(final long[] sentence, final int bitOffset, final long ink, final int inkRange)
-            throws InvalidBitWriteOperation {
-        //If the inkRange extends beyond the scope of the supplied ink
-        if (inkRange > 64) throw InvalidBitWriteOperation.rangeOutOfBounds(inkRange, 64);
+    public static long[] writeRangeToSentence(final long[] sentence, final int bitOffset, final long ink, final int inkRange){
 
         int sIndex = Math.floorDiv(bitOffset, 64); //Index for the sentence
         //The bitOffset could be greater than 64 if the first word in the sentence is not the first one we want to write to
@@ -161,9 +229,60 @@ public class BitwiseDataHelper {
         //If there is still more we need to write, write the rest to the next word
         int leftToWrite = inkRange - bitsToWrite;
         if (leftToWrite > 0){
-            long iso = isolateRange(ink, bitsToWrite, leftToWrite);
-            sentence[++sIndex] = writeRange(sentence[sIndex], 0, iso, leftToWrite);
-            //sentence[++sIndex] = writeRange(sentence[sIndex], 0, isolateRange(ink, bitsToWrite, leftToWrite), leftToWrite);
+            sentence[++sIndex] = writeRange(sentence[sIndex], 0, isolateRange(ink, bitsToWrite, leftToWrite), leftToWrite);
+        }
+        return sentence;
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRangeToSentence(long[], int, long, int)} but accepts an integer for the ink argument
+     * @param sentence the original set of bits to write the ink to. Make SURE that all the bits that will be written
+     *                 (defined by both the ink and the inkRange argument) will fit within this array, otherwise an exception will be thrown
+     *                 (see {@code Throws})
+     * @param bitOffset the amount of bits between the first bit index of the first word in the sentence and the location to write the new bits to.
+     *                  The offset is in context to the sentence argument-- if the value is greater than 64 (the bitsize of a long)
+     *                  it will skip the first word within the sentence argument, etc.
+     * @param ink the bits to write to the sentence
+     * @param inkRange how many bits from the ink to write to the sentence. Any bits (defined or otherwise) within the ink argument
+     *                but outside the bounds defined will be ignored
+     * @return a modified version of the sentence long array argument with the new bits written to the supplied index range
+     * (argument {@code sentence} or {@code ink})
+     */
+    public static long[] writeRangeToSentence(final long[] sentence, final int bitOffset, final int ink, final int inkRange){
+
+        int sIndex = Math.floorDiv(bitOffset, 64);
+        int localOffset = bitOffset % 64;
+        int bitsToWrite = Math.min(inkRange, 64 - localOffset);
+        int trailingBitMask = 32 - bitsToWrite; //how many of the bits to shave off, needs to be defined as integers have less total bits than longs
+        sentence[sIndex] = writeRange(sentence[sIndex], localOffset, (ink << trailingBitMask) >>> trailingBitMask, bitsToWrite);
+        int leftToWrite = inkRange - bitsToWrite;
+        if (leftToWrite > 0){
+            sentence[++sIndex] = writeRange(sentence[sIndex], 0, isolateRange(ink, bitsToWrite, leftToWrite), leftToWrite);
+        }
+        return sentence;
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#writeRangeToSentence(long[], int, long, int)} but accepts a byte for the ink argument
+     * @param sentence the original set of bits to write the ink to. Make SURE that all the bits that will be written
+     *                 (defined by both the ink and the inkRange argument) will fit within this array, otherwise an exception will be thrown
+     *                 (see {@code Throws})
+     * @param bitOffset the amount of bits between the first bit index of the first word in the sentence and the location to write the new bits to.
+     *                  The offset is in context to the sentence argument-- if the value is greater than 64 (the bitsize of a long)
+     *                  it will skip the first word within the sentence argument, etc.
+     * @param ink the bits to write to the sentence
+     * @param inkRange how many bits from the ink to write to the sentence. Any bits (defined or otherwise) within the ink argument
+     *                but outside the bounds defined will be ignored
+     * @return a modified version of the sentence long array argument with the new bits written to the supplied index range
+     * (argument {@code sentence} or {@code ink})
+     */
+    public static long[] writeRangeToSentence(final long[] sentence, final int bitOffset, final byte ink, final int inkRange){
+        int sIndex = Math.floorDiv(bitOffset, 64);
+        int localOffset = bitOffset % 64;
+        int bitsToWrite = Math.min(inkRange, 64 - localOffset);
+        int trailingBitMask = 8 - bitsToWrite; //how many of the bits to shave off, needs to be defined as bytes have less total bits than longs
+        sentence[sIndex] = writeRange(sentence[sIndex], localOffset, (ink << trailingBitMask) >>> trailingBitMask, bitsToWrite);
+        int leftToWrite = inkRange - bitsToWrite;
+        if (leftToWrite > 0){
+            sentence[++sIndex] = writeRange(sentence[sIndex], 0, isolateRange(ink, bitsToWrite, leftToWrite), leftToWrite);
         }
         return sentence;
     }
@@ -186,6 +305,28 @@ public class BitwiseDataHelper {
         //Finally, NOT again to get [00000100]-- isolating and preserving the first 4 bits while dumping the rest
         //[Scaled down model, longs are comprised of 64 bits, not 8]
         return ~(~(word >>> bitOffset) | -1L << range);
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#isolateRange(long, int, int)} but for integers
+     * @param word the "word" (integer) to read from (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bits to read. Index 0 is the first bit farthest to the right.
+     * @param range how many bits to read, starting from the index outwards. Can NOT be greater than or equal to 32 (the amount of bits within an integer)
+     * @return a new "word" with all the wanted bits (defined by the bitOffset and range) isolated to the starting index outwards.
+     * All other bits default to zero
+     */
+    public static int isolateRange(final int word, final int bitOffset, final int range){
+        return ~(~(word >>> bitOffset) | -1 << range);
+    }
+    /**
+     * Same as {@link BitwiseDataHelper#isolateRange(long, int, int)} but for bytes
+     * @param word the "word" (byte) to read from (is NOT modified in the process, returns a new variable)
+     * @param bitOffset the "offset" (index) of the bits to read. Index 0 is the first bit farthest to the right.
+     * @param range how many bits to read, starting from the index outwards. Can NOT be greater than or equal to 8 (the amount of bits within a byte)
+     * @return a new "word" with all the wanted bits (defined by the bitOffset and range) isolated to the starting index outwards.
+     * All other bits default to zero
+     */
+    public static byte isolateRange(final byte word, final int bitOffset, final int range){
+        return (byte) ~(~(word >>> bitOffset) | -1 << range);
     }
 
     /**

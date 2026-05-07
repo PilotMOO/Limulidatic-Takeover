@@ -8,7 +8,9 @@ import mod.pilot.horseshoe_crab_takeover.items.unique.AStarGridWand;
 import mod.pilot.horseshoe_crab_takeover.items.unique.BitPackageTestWand;
 import mod.pilot.horseshoe_crab_takeover.items.unique.Node3DGridWand;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Basic2DNode;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Bitwise3dNodeGrid;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3D;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.ReversibleArray;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -23,6 +25,7 @@ import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 
 import java.util.ArrayList;
@@ -103,13 +106,13 @@ public class HorseshoeHandlerEvents {
         else inc = 0;
     }
 
-    private static ArrayList<Node3D.Snapshot> path3d;
-    private static Node3D.Snapshot current3d;
+    private static ReversibleArray<Bitwise3dNodeGrid.NodeContext> path3d;
+    private static Bitwise3dNodeGrid.NodeContext current3d;
     private static int inc3d;
     @SubscribeEvent
     public static void serverGridTick3d(TickEvent.ServerTickEvent event){
         ServerLevel server = event.getServer().overworld();
-        if (Node3DGridWand.renderGrid){
+        /*if (Node3DGridWand.renderGrid){
             for (Node3D[][] node : Node3DGridWand.grid.grid){
                 for (Node3D[] node1 : node){
                     for (Node3D n : node1){
@@ -122,26 +125,34 @@ public class HorseshoeHandlerEvents {
                     }
                 }
             }
-        }
+        }*/
         if (Node3DGridWand.pathfind){
-            Node3D node = Node3DGridWand.grid.findPath(Node3DGridWand.start, Node3DGridWand.end);
+            path3d = Node3DGridWand.grid.findPath(Node3DGridWand.start, Node3DGridWand.end, server);
             Node3DGridWand.pathfind = false;
             inc3d = 0;
-            if (node != null){
-                path3d = Node3D.Snapshot.snapshotPathToArray(node, true);
+            if (path3d != null) {
                 current3d = path3d.get(0);
             }
         }
         if (path3d != null){
-            if (++inc3d % 15 == 0) {
-                Vector3i pos = current3d.getWithOffset(Node3DGridWand.grid.lowerBottomLeft);
-                event.getServer().overworld().setBlock(new BlockPos(pos.x, pos.y, pos.z),
+            /*if (++inc3d % 15 == 0) {
+                BlockPos pos = new BlockPos(Node3DGridWand.grid.lowerBottomLeft.x + current3d.x,
+                        Node3DGridWand.grid.lowerBottomLeft.y + current3d.y,
+                        Node3DGridWand.grid.lowerBottomLeft.z + current3d.z);
+                event.getServer().overworld().setBlock(pos,
                         Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
-                int index = path3d.indexOf(current3d);
-                if (++index >= path3d.size()){
+                if (inc3d >= path3d.size()){
                     path3d = null; current3d = null;
-                } else current3d = path3d.get(index);
+                } else current3d = path3d.get(inc3d);
+            }*/
+            for (Bitwise3dNodeGrid.NodeContext context : path3d){
+                BlockPos pos = new BlockPos(Node3DGridWand.grid.lowerBottomLeft.x + context.x,
+                        Node3DGridWand.grid.lowerBottomLeft.y + context.y,
+                        Node3DGridWand.grid.lowerBottomLeft.z + context.z);
+                event.getServer().overworld().setBlock(pos,
+                        Blocks.DIAMOND_BLOCK.defaultBlockState(), 3);
             }
+            path3d = null;
         }
         else inc3d = 0;
     }

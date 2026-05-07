@@ -75,11 +75,7 @@ BitPackageTestWand extends Item {
             }
             ink = (ink << 1) | 1L;
         }
-        try {
-            BitwiseDataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
-        } catch (BitwiseDataHelper.InvalidBitWriteOperation e) {
-            throw new RuntimeException(e);
-        }
+        BitwiseDataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
 
         return mail;
     }

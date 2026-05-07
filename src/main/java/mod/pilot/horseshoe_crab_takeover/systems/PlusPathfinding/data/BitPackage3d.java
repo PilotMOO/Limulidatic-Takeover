@@ -40,6 +40,7 @@ public abstract class BitPackage3d<T> {
     protected final long[] bits;
     /**An intermediate long array used and recycled for each read|write operation, as to not make a bunch of arrays that just immediately get discarded*/
     public final long[] bitMail;
+    protected int bitMailIndex;
 
     /**
      * Computes the contextual index of the first bit of a given object within the BitPackage with a coordinate index of {@code [x,y,z]}.
@@ -116,7 +117,7 @@ public abstract class BitPackage3d<T> {
 
     /**
      * Reads and returns the bits of a given object at the given coordinate index via the {@link BitPackage3d#bitMail}
-     * <p>Shorthand, computes the contextual index and the bit offset then invokes {@link BitPackage3d#readBits(int, int)}</p>
+     * <p>Shorthand, computes the contextual index and the bit offset then invokes {@link BitPackage3d#readBits(int)}</p>
      * @param x The X coordinate of the object
      * @param y The Y coordinate of the object
      * @param z The Z coordinate of the object
@@ -124,20 +125,21 @@ public abstract class BitPackage3d<T> {
      */
     public long[] readBits(int x, int y, int z){
         int contextIndex = computeContextualIndex(x, y, z);
-        int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
-        return readBits(contextIndex, bitOffset);
+        //int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
+        return readBits(contextIndex/*, bitOffset*/);
     }
     /**
      * Reads and returns the bits of a given object at the given contextual index via the {@link BitPackage3d#bitMail}
      * @param index The contextual index of the object to read the bits from
-     * @param bitOffset The bit offset of the first bit of the desired object to read the bits of relative to the first bit within the containing "word" (long)
+     *
      * @return The bitMail containing all the bits pertaining to a given object at the supplied contextual index
      */
-    public long[] readBits(int index, int bitOffset){
-        int lastBit = bitsPerObject + bitOffset;
+    //@param bitOffset The bit offset of the first bit of the desired object to read the bits of relative to the first bit within the containing "word" (long)
+    public long[] readBits(int index/*, int bitOffset*/){
+        /*int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
-        if (lastBit - (pages * 64) > 0) pages++;
-        System.arraycopy(bits, index, bitMail, 0, pages);
+        if (lastBit - (pages * 64) > 0) pages++;*/
+        System.arraycopy(bits, (bitMailIndex = index), bitMail, 0, bitMail.length);
         return bitMail;
     }
 
@@ -151,8 +153,8 @@ public abstract class BitPackage3d<T> {
      */
     public long[] readBitsUNSAFE(int x, int y, int z){
         int contextIndex = computeContextualIndexUNSAFE(x, y, z);
-        int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
-        return readBits(contextIndex, bitOffset);
+        //int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
+        return readBits(contextIndex/*, bitOffset*/);
     }
 
     /**
@@ -218,8 +220,8 @@ public abstract class BitPackage3d<T> {
      */
     public T readObject(int x, int y, int z){
         int contextIndex = computeContextualIndex(x, y, z);
-        int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64);
-        return fromBits(bitOffset, readBits(contextIndex, bitOffset));
+        int bitOffset = computeBitIndexUNSAFE(x, y, z) - (contextIndex * 64); //I won't bother inlining this for readability reasons
+        return fromBits(bitOffset, readBits(contextIndex/*, bitOffset*/));
     }
     /**
      * Reads the bits at the supplied contextual index and computes the object from the resulting bits
@@ -229,7 +231,7 @@ public abstract class BitPackage3d<T> {
      * @return The object computed from the bits at the supplied contextual index
      */
     public T readObject(int index, int bitOffset){
-        return fromBits(bitOffset, readBits(index, bitOffset));
+        return fromBits(bitOffset, readBits(index/*, bitOffset*/));
     }
 
     /**
@@ -245,19 +247,23 @@ public abstract class BitPackage3d<T> {
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset, readBits(contextIndex, bitOffset)), pages);
+        writeBits(contextIndex, toBits(obj, bitOffset,
+                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                pages);
     }
     /**
      * Writes an object into the BitPackage at the supplied contextual index.
-     * @param index The contextual index to write the object to
+     * @param contextIndex The contextual index to write the object to
      * @param obj The object to write into the BitPackage at the supplied contextual index
      * @param bitOffset The offset of the first desired bit of the object within the "word" (long) relative to the first bit of the word
      */
-    public void writeObject(int index, T obj, int bitOffset){
+    public void writeObject(int contextIndex, T obj, int bitOffset){
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(index, toBits(obj, bitOffset, bitMail), pages);
+        writeBits(contextIndex, toBits(obj, bitOffset,
+                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                pages);
     }
 
     /**
@@ -273,7 +279,9 @@ public abstract class BitPackage3d<T> {
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset, bitMail), pages);
+        writeBits(contextIndex, toBits(obj, bitOffset,
+                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                pages);
     }
 
 

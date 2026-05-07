@@ -1,5 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover.items.unique;
 
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Bitwise3dNodeGrid;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3DGrid;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -19,7 +20,7 @@ public class Node3DGridWand extends Item {
         super(pProperties);
     }
 
-    public static Node3DGrid grid;
+    public static Bitwise3dNodeGrid grid;
     public static boolean renderGrid;
     public static Vector3i start, end;
     public static boolean pathfind;
@@ -31,8 +32,8 @@ public class Node3DGridWand extends Item {
             if (pContext.isSecondaryUseActive()) {
                 pContext.getPlayer().displayClientMessage(Component.literal("Creating new grid!"), true);
                 Vector3i pos = new Vector3i(bPos.getX() - 10, bPos.getY(), bPos.getZ() - 10);
-                grid = new Node3DGrid(pos, false, 20, 20, 20, Node3DGridWand::nodeState);
-                grid.fillGrid(server);
+                grid = new Bitwise3dNodeGrid(pos, false, 20, 20, 20, Node3DGridWand::nodeState);
+                //grid.fillGrid(server);
                 renderGrid = true;
             } else if (grid != null){
                 if (start == null){
@@ -67,7 +68,7 @@ public class Node3DGridWand extends Item {
             }
             else if (grid != null){
                 pPlayer.displayClientMessage(Component.literal("Regenerating node values..."), true);
-                grid.fillGrid(pLevel);
+                //grid.fillGrid(pLevel);
                 renderGrid = true;
             }
         }
@@ -76,12 +77,12 @@ public class Node3DGridWand extends Item {
     }
 
     public static byte nodeState(BlockPos bPos, Level level){
-        if (!level.getBlockState(bPos).isAir()) return 2;
+        if (!level.getBlockState(bPos).isAir()) return 0;
 
-        if (!level.getBlockState(bPos.below()).isAir()) return 0;
-        if (checkAround(bPos, level)) return 1;
+        if (!level.getBlockState(bPos.below()).isAir()) return 2 << 1;
+        if (checkAround(bPos, level)) return 1 << 1;
 
-        return 2;
+        return 0;
     }
 
     private static boolean checkAround(BlockPos bPos, Level level){
