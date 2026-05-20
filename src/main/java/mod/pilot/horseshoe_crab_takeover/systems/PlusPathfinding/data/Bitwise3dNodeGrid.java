@@ -232,7 +232,9 @@ public class Bitwise3dNodeGrid {
             int pages = Math.floorDiv(lastBit, 64);
             if (lastBit - (pages * 64) > 0) pages++;*/
             if (contextIndex != bitMailIndex) readBits(contextIndex);
-            writeBitsUNSAFE(contextIndex, BitwiseDataHelper.writeRangeToSentence(bitMail, bitOffset, state, 3)/*, pages*/);
+            try {
+                writeBitsUNSAFE(contextIndex, BitwiseDataHelper.writeRangeToSentence(bitMail, bitOffset, state, 3)/*, pages*/);
+            } catch (Exception ignored){}
         }
 
         public byte readState(int x, int y, int z){
@@ -243,7 +245,7 @@ public class Bitwise3dNodeGrid {
         }
 
         @Override
-        protected long[] toBits(NodeContext obj, int bitOffset, long[] bitMail) {
+        protected long[] toBits(NodeContext obj, int bitOffset, long[] bitMail) throws BitwiseDataHelper.InvalidBitWriteOperation {
             return BitwiseDataHelper.writeRangeToSentence(bitMail, bitOffset, obj.state, 2);
         }
         @Override

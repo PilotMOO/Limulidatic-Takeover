@@ -247,9 +247,13 @@ public abstract class BitPackage3d<T> {
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset,
-                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
-                pages);
+        try {
+            writeBits(contextIndex, toBits(obj, bitOffset,
+                            contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                    pages);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     /**
      * Writes an object into the BitPackage at the supplied contextual index.
@@ -261,9 +265,13 @@ public abstract class BitPackage3d<T> {
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset,
-                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
-                pages);
+        try {
+            writeBits(contextIndex, toBits(obj, bitOffset,
+                            contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                    pages);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -279,9 +287,11 @@ public abstract class BitPackage3d<T> {
         int lastBit = bitsPerObject + bitOffset;
         int pages = Math.floorDiv(lastBit, 64);
         if (lastBit - (pages * 64) > 0) pages++;
-        writeBits(contextIndex, toBits(obj, bitOffset,
-                        contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
-                pages);
+        try {
+            writeBits(contextIndex, toBits(obj, bitOffset,
+                            contextIndex == bitMailIndex ? bitMail : readBits(contextIndex/*, bitOffset*/)),
+                    pages);
+        } catch (Exception e) {throw new RuntimeException(e);}
     }
 
 
@@ -293,7 +303,7 @@ public abstract class BitPackage3d<T> {
      * @param bitMail The supplied long array to write/modify the bits to
      * @return A long array with the modified "written" bits. Should be the same array fed into the arguments
      */
-    protected abstract long[] toBits(T obj, int bitOffset, long[] bitMail);
+    protected abstract long[] toBits(T obj, int bitOffset, long[] bitMail) throws BitwiseDataHelper.InvalidBitWriteOperation;
     /**
      * Unpacks the stored bit information from the supplied long array and returns the computed object.
      * <p>Only the bits included and after the bitOffset in the first "word" (long) contain the relevant data.

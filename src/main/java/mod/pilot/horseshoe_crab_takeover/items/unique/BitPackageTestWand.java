@@ -60,7 +60,7 @@ public class BitPackageTestWand extends Item {
         return super.use(level, player, hand);
     }
 
-    private static long[] toBits(BlockState obj, int bitOffset, long[] mail) {
+    private static long[] toBits(BlockState obj, int bitOffset, long[] mail){
         long ink = 0L;
         if (!obj.isAir()) {
             if (obj.getBlock() instanceof SlabBlock) {
@@ -73,7 +73,9 @@ public class BitPackageTestWand extends Item {
             }
             ink = (ink << 1) | 1L;
         }
-        BitwiseDataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
+        try {
+            BitwiseDataHelper.writeRangeToSentence(mail, bitOffset, ink, 3);
+        } catch (Exception ignored) {}
 
         return mail;
     }

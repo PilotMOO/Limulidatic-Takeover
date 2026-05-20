@@ -53,6 +53,8 @@ public class GreedyNode extends QuadSpace {
         this.relativeIDs = new byte[this.size = this.occupied = 0];
     }
 
+    public boolean is(byte id){return nodeID == isolateID(id);}
+
     public void flagInvalid(){nodeID = -1;}
     public void assignID(byte ID){nodeID = ID;}
     public byte nodeID;
