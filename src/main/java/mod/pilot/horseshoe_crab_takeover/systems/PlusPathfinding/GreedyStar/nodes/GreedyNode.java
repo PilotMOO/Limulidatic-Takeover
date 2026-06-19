@@ -50,7 +50,7 @@ public class GreedyNode extends QuadSpace {
             }
         }
 
-        this.relativeIDs = new byte[this.size = this.occupied = 0];
+        this.relativeIDs = new byte[this.idRelativeSize = this.occupied = 0];
     }
 
     public boolean is(byte id){return nodeID == isolateID(id);}
@@ -98,7 +98,7 @@ public class GreedyNode extends QuadSpace {
 
     //RELATIVES
     public byte[] relativeIDs;
-    public int size, occupied;
+    public int idRelativeSize, occupied;
 
     public void addElementByDirection(byte element, Direction direction){
         insertElement(computeElementID(element, direction),
@@ -112,22 +112,22 @@ public class GreedyNode extends QuadSpace {
     }
 
     public void insertElement(byte id, int index){
-        System.out.println("INSERTING [" + BitwiseDataHelper.parseByteToBinary(id) + " INTO INDEX " + index + ", there are already " + size + " nodes here");
-        if (index >= size){
-            growArray((size + 1) - index);
+        System.out.println("INSERTING [" + BitwiseDataHelper.parseByteToBinary(id) + " INTO INDEX " + index + ", there are already " + idRelativeSize + " nodes here");
+        if (index >= idRelativeSize){
+            growArray((idRelativeSize + 1) - index);
         }
         else if (index < occupied) {
             growArray(1);
-            System.arraycopy(relativeIDs, index, relativeIDs, index + 1, size - (index + 1));
+            System.arraycopy(relativeIDs, index, relativeIDs, index + 1, idRelativeSize - (index + 1));
         }
         relativeIDs[index] = id;
         this.occupied++;
     }
     public void removeElement(int index){
-        if (index < 0 || index > size) return;
-        byte[] newArray = new byte[size];
+        if (index < 0 || index > idRelativeSize) return;
+        byte[] newArray = new byte[idRelativeSize];
         System.arraycopy(relativeIDs, 0, newArray, 0, index);
-        System.arraycopy(relativeIDs, index+1, newArray, index, size - index);
+        System.arraycopy(relativeIDs, index+1, newArray, index, idRelativeSize - index);
         this.occupied--;
         relativeIDs = newArray;
     }
@@ -137,7 +137,7 @@ public class GreedyNode extends QuadSpace {
     }
     public byte[] getAllIDsOfDirection(byte id_pre){
         if (id_pre > 6) id_pre = isolateDirection(id_pre);
-        byte[] toReturn = new byte[size];
+        byte[] toReturn = new byte[idRelativeSize];
         int count = 0;
         for (int i = 0; i < occupied; i++){
             byte cDirectionID = isolateDirection(relativeIDs[i]);
@@ -199,11 +199,11 @@ public class GreedyNode extends QuadSpace {
     }
 
     private void growArray(int amount){
-        int newSize = size + amount;
+        int newSize = idRelativeSize + amount;
         byte[] newIDs = new byte[newSize];
-        System.arraycopy(relativeIDs, 0, newIDs, 0, size);
+        System.arraycopy(relativeIDs, 0, newIDs, 0, idRelativeSize);
         relativeIDs = newIDs;
-        size = newSize;
+        idRelativeSize = newSize;
     }
     private static byte[] capArray(byte[] array, int size){
         if (array.length <= size) return array;

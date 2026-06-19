@@ -1,6 +1,7 @@
 package mod.pilot.horseshoe_crab_takeover.events;
 
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
+import mod.pilot.horseshoe_crab_takeover.entities.NodeVisualizerEntity;
 import mod.pilot.horseshoe_crab_takeover.entities.OriginalHorseshoeCrabEntity;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
 import mod.pilot.horseshoe_crab_takeover.entities.ModifiedHorseshoeCrabEntity;

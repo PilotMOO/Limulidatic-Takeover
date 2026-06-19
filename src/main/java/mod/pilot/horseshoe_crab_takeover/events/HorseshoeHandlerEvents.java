@@ -9,12 +9,9 @@ import mod.pilot.horseshoe_crab_takeover.items.unique.BitPackageTestWand;
 import mod.pilot.horseshoe_crab_takeover.items.unique.Node3DGridWand;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Basic2DNode;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Bitwise3dNodeGrid;
-import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.Node3D;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.ReversibleArray;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,7 +22,6 @@ import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 
 import java.util.ArrayList;
@@ -45,13 +41,13 @@ public class HorseshoeHandlerEvents {
     }
 
     @SubscribeEvent
-    public static void ServerStart(ServerStartedEvent event){
+    public static void serverStart(ServerStartedEvent event){
         HorseshoeWorldData.setActiveData(event.getServer().overworld());
         victims = new ArrayList<>();
     }
 
     @SubscribeEvent
-    public static void InvasionStartManager(TickEvent.ServerTickEvent event){
+    public static void invasionStartManager(TickEvent.ServerTickEvent event){
         if (invasionDisabled) return;
         Horseshoe_Crab_Takeover.activeData.ageWorld();
         if (!HorseshoeWorldData.hasStarted() && HorseshoeWorldData.getWorldAge() > shitGetsReal){

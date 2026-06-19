@@ -1,11 +1,17 @@
 package mod.pilot.horseshoe_crab_takeover.items.unique;
 
+import mod.pilot.horseshoe_crab_takeover.data.syncing.NodeSyncingPacket;
+import mod.pilot.horseshoe_crab_takeover.entities.NodeVisualizerEntity;
+import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyChunk;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyMap;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.GreedyStar.GreedyWorld;
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDataHelper;
+import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
@@ -19,6 +25,8 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.joml.Vector2i;
+
+import java.util.UUID;
 
 public class GreedyChunkReaderWand extends Item {
     public GreedyChunkReaderWand(Properties pProperties) {
@@ -53,6 +61,20 @@ public class GreedyChunkReaderWand extends Item {
         pPlayer.displayClientMessage(Component.literal("Relative [" + relative.x + ", " + relative.y + "]"), false);
         minorX = relative.x; minorZ = relative.y;
         level = pLevel;
+
+        if (pPlayer instanceof ServerPlayer sP) {
+            for (GreedyMap map : gChunk.maps) {
+                QuadSpace q = map.getBounds();
+                double middleX = q.minorX + (q.sizeX / 2d) + relative.x,
+                        middleY = q.minorY + (q.sizeY / 2d),
+                        middleZ = q.minorZ + (q.sizeZ / 2d) + relative.y;
+                NodeVisualizerEntity visual = new NodeVisualizerEntity(HorseshoeEntities.NODE_VISUALIZER.get(), pLevel);
+                visual.moveTo(middleX, middleY, middleZ);
+                pLevel.addFreshEntity(visual);
+                UUID uuid = visual.getUUID();
+                NodeSyncingPacket.sync(uuid, map.nodes, sP);
+            }
+        }
 
         return super.use(pLevel, pPlayer, pUsedHand);
     }

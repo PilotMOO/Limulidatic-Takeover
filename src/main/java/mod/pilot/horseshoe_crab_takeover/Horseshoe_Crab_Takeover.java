@@ -1,5 +1,6 @@
 package mod.pilot.horseshoe_crab_takeover;
 
+import mod.pilot.horseshoe_crab_takeover.data.syncing.PacketHub;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
 import mod.pilot.horseshoe_crab_takeover.items.HorseshoeCreativeTabs;
 import mod.pilot.horseshoe_crab_takeover.items.HorseshoeItems;
@@ -9,9 +10,11 @@ import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.BitwiseDat
 import mod.pilot.horseshoe_crab_takeover.systems.PlusPathfinding.data.QuadSpace;
 import mod.pilot.horseshoe_crab_takeover.worlddata.HorseshoeWorldData;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -28,6 +31,7 @@ public class Horseshoe_Crab_Takeover
     public Horseshoe_Crab_Takeover()
     {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(Horseshoe_Crab_Takeover::FMLCommon);
 
         HorseshoeEntities.register(modEventBus);
         HorseshoeItems.register(modEventBus);
@@ -99,13 +103,19 @@ public class Horseshoe_Crab_Takeover
         System.out.println("Bits post-write: [" + Long.toBinaryString(pack[0]) +", "+ Long.toBinaryString(pack[1]) +", "+ Long.toBinaryString(pack[2]) +", "+ Long.toBinaryString(pack[3]) +"]");*/
 
         //Testing distance checks
-        QuadSpace q1, q2;
+/*        QuadSpace q1, q2;
         q1 = new QuadSpace(0,0,0,1,1,1);
         q2 = new QuadSpace(1,0,-10,1,1,20);
         System.out.printf("\nQUADSPACES Q1 %s AND Q2 %s", q1, q2);
         double dist = q1.distanceEdgeToEdge(q2);
         System.out.println("DISTANCE BETWEEN TWO: " + dist);
         QuadSpace q3 = new QuadSpace(4,6,2,1,5,1);
-        System.out.println("q3: " + q3 + ", dist to q1: " + q1.distanceEdgeToEdge(q3));
+        System.out.println("q3: " + q3 + ", dist to q1: " + q1.distanceEdgeToEdge(q3));*/
+    }
+
+    @SubscribeEvent
+    public static void FMLCommon(FMLCommonSetupEvent event){
+        System.out.println("Hello from LTHCI FML Common!");
+        PacketHub.registerPackets();
     }
 }

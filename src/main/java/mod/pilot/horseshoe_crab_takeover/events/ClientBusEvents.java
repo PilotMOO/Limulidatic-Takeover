@@ -1,11 +1,8 @@
 package mod.pilot.horseshoe_crab_takeover.events;
 
 import mod.pilot.horseshoe_crab_takeover.Horseshoe_Crab_Takeover;
-import mod.pilot.horseshoe_crab_takeover.entities.client.HorseshoeCrabModel;
-import mod.pilot.horseshoe_crab_takeover.entities.client.HorseshoeCrabRenderer;
-import mod.pilot.horseshoe_crab_takeover.entities.client.OldHorseshoeCrabModel;
+import mod.pilot.horseshoe_crab_takeover.entities.client.*;
 import mod.pilot.horseshoe_crab_takeover.entities.common.HorseshoeEntities;
-import mod.pilot.horseshoe_crab_takeover.entities.client.OldHorseshoeCrabRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -25,5 +22,8 @@ public class ClientBusEvents {
     public static void onClientSetup(FMLClientSetupEvent event) {
         EntityRenderers.register(HorseshoeEntities.OLD_HORSESHOE_CRAB.get(), OldHorseshoeCrabRenderer::new);
         EntityRenderers.register(HorseshoeEntities.HORSESHOE_CRAB.get(), HorseshoeCrabRenderer::new);
+
+
+        EntityRenderers.register(HorseshoeEntities.NODE_VISUALIZER.get(), NodeVisualizerRenderer::new);
     }
 }
